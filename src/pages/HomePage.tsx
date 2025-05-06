@@ -29,7 +29,7 @@ const HomePage: React.FC = () => {
             </p>
             <div className="flex flex-wrap gap-4 animate-slide-up" style={{ animationDelay: '0.2s' }}>
               <Link 
-                to="/productos" 
+                to="/login" 
                 className="px-6 py-3 bg-primary-500 text-white font-medium rounded-md hover:bg-primary-600 transition-colors"
               >
                 Ver Servicios
@@ -120,7 +120,7 @@ const HomePage: React.FC = () => {
               Servicios Destacados
             </h2>
             <Link 
-              to="/productos"
+              to="/login"
               className="text-primary-500 font-medium hover:text-primary-600 transition-colors"
             >
               Ver todos

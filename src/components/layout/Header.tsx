@@ -86,7 +86,7 @@ const Header: React.FC = () => {
                 </span>
               )}
             </Link>
-            <Link to="/checkout" className="p-2 rounded-full hover:bg-neutral-100 transition-colors">
+            <Link to="/login" className="p-2 rounded-full hover:bg-neutral-100 transition-colors">
               <User size={20} className="text-neutral-700" />
             </Link>
             <button 

@@ -38,7 +38,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           </span>
           
           <Link 
-            to={`/productos/${product.id}`}
+          to= '/login'
+        //    to={`/productos/${product.id}`}
             className="inline-flex items-center text-sm font-medium text-primary-500 hover:text-primary-600 transition-colors"
           >
             Ver detalles

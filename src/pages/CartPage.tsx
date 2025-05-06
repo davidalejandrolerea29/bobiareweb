@@ -41,7 +41,7 @@ const CartPage: React.FC = () => {
             No has agregado ningún servicio a tu carrito aún. Explora nuestros servicios y comienza a transformar tus superficies.
           </p>
           <Link 
-            to="/productos"
+            to="/login"
             className="px-6 py-3 bg-primary-500 text-white font-medium rounded-md hover:bg-primary-600 transition-colors"
           >
             Ver Servicios
