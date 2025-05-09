@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../services/supabaseClient';
 
-const Login: React.FC = () => {
+const RegisterScreen: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { login } = useAuth();
+  const { login } = useAuth(); // Usamos el login después de crear la cuenta
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -15,10 +16,19 @@ const Login: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      await login(email, password);
+      // Crear cuenta en Supabase
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (error) throw new Error(error.message);
+
+      // Si la cuenta se crea correctamente, automáticamente hacer login y redirigir al admin
+      await login(email, password); // Utilizamos el login que ya tienes implementado
       navigate('/admin'); // Redirige a la pantalla de administración
     } catch (err) {
-      setError('Correo o contraseña incorrectos');
+      setError('Hubo un error al crear la cuenta');
     } finally {
       setLoading(false);
     }
@@ -29,7 +39,7 @@ const Login: React.FC = () => {
       <div className="max-w-md w-full bg-white p-8 rounded-2xl shadow-lg">
         <div className="mb-6 text-center">
           <img src="/logo2.png" alt="Logo" className="h-12 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-neutral-800">Iniciar Sesión</h2>
+          <h2 className="text-2xl font-bold text-neutral-800">Crear Cuenta</h2>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -60,16 +70,16 @@ const Login: React.FC = () => {
             className="w-full bg-primary-500 text-white py-2 rounded-xl hover:bg-primary-600 transition-colors"
             disabled={loading}
           >
-            {loading ? 'Cargando...' : 'Iniciar Sesión'}
+            {loading ? 'Cargando...' : 'Crear Cuenta'}
           </button>
         </form>
         <div className="mt-4 flex justify-between text-sm">
           <a href="#" className="text-primary-500 hover:underline">¿Olvidaste tu contraseña?</a>
-          <a href="register" className="text-primary-500 hover:underline">Crear cuenta</a>
+          <a href="/login" className="text-primary-500 hover:underline">Iniciar sesión</a>
         </div>
       </div>
     </div>
   );
 };
 
-export default Login;
+export default RegisterScreen;

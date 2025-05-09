@@ -2,57 +2,58 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Filter, ChevronDown } from 'lucide-react';
 import ProductGrid from '../components/products/ProductGrid';
-import { products } from '../data/products';
 import { Product } from '../types';
+import { supabase } from '../services/supabaseClient';
 
 const ProductListPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const categoryParam = searchParams.get('category');
   const serviceParam = searchParams.get('service');
 
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>(products);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [activeFilters, setActiveFilters] = useState<{
     category: string | null;
-    priceRange: [number, number] | null;
   }>({
     category: categoryParam,
-    priceRange: null,
   });
 
-  // Get unique categories from products
-  const categories = Array.from(new Set(products.map(product => product.category)));
+  // ✅ Cargar productos desde Supabase
+  useEffect(() => {
+    const fetchProducts = async () => {
+      const { data, error } = await supabase.from('products').select('*');
+      if (error) {
+        console.error('Error al cargar productos:', error);
+      } else {
+         console.log('esto es fectch product',data); 
+        setProducts(data || []);
+      }
+    };
 
-  // Filter products based on URL parameters and active filters
+    fetchProducts();
+  }, []);
+
+  // ✅ Filtrar productos basados en parámetros y filtros activos
   useEffect(() => {
     let result = [...products];
 
-    // Filter by URL parameters first
     if (categoryParam) {
       result = result.filter(product => product.category === categoryParam);
     }
 
     if (serviceParam) {
-      // This is a simplified example - in a real app, you'd have a more complex way to match services
-      result = result.filter(product => 
+      result = result.filter(product =>
         product.name.toLowerCase().includes(serviceParam.toLowerCase())
       );
     }
 
-    // Apply active filters
     if (activeFilters.category) {
       result = result.filter(product => product.category === activeFilters.category);
     }
 
-    if (activeFilters.priceRange) {
-      const [min, max] = activeFilters.priceRange;
-      result = result.filter(product => 
-        product.basePrice >= min && product.basePrice <= max
-      );
-    }
-
     setFilteredProducts(result);
-  }, [categoryParam, serviceParam, activeFilters]);
+  }, [categoryParam, serviceParam, activeFilters, products]);
 
   const handleCategoryFilter = (category: string | null) => {
     setActiveFilters(prev => ({
@@ -61,24 +62,18 @@ const ProductListPage: React.FC = () => {
     }));
   };
 
-  const handlePriceFilter = (range: [number, number] | null) => {
-    setActiveFilters(prev => ({
-      ...prev,
-      priceRange: range,
-    }));
-  };
-
   const resetFilters = () => {
     setActiveFilters({
       category: null,
-      priceRange: null,
     });
   };
+
+  // ✅ Sacar categorías únicas de los productos cargados
+  const categories = Array.from(new Set(products.map(product => product.category)));
 
   return (
     <div className="py-8">
       <div className="container mx-auto px-4">
-        {/* Page Header */}
         <div className="mb-8">
           <h1 className="font-heading text-3xl font-bold text-neutral-800 mb-2">
             {categoryParam ? `Servicios de ${categoryParam}` : 'Todos los Servicios'}
@@ -89,7 +84,6 @@ const ProductListPage: React.FC = () => {
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8">
-          {/* Filters - Mobile Toggle */}
           <div className="lg:hidden mb-4">
             <button
               onClick={() => setShowFilters(!showFilters)}
@@ -103,20 +97,18 @@ const ProductListPage: React.FC = () => {
             </button>
           </div>
 
-          {/* Filters Sidebar */}
           <div className={`lg:w-1/4 ${showFilters ? 'block' : 'hidden lg:block'}`}>
             <div className="bg-white p-5 rounded-lg shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-medium text-lg">Filtros</h2>
-                <button 
+                <button
                   onClick={resetFilters}
                   className="text-sm text-primary-500 hover:text-primary-600"
                 >
                   Limpiar
                 </button>
               </div>
-              
-              {/* Category Filter */}
+
               <div className="mb-6">
                 <h3 className="font-medium text-neutral-800 mb-3">Categoría</h3>
                 <div className="space-y-2">
@@ -125,9 +117,9 @@ const ProductListPage: React.FC = () => {
                       <input
                         type="checkbox"
                         checked={activeFilters.category === category}
-                        onChange={() => handleCategoryFilter(
-                          activeFilters.category === category ? null : category
-                        )}
+                        onChange={() =>
+                          handleCategoryFilter(activeFilters.category === category ? null : category)
+                        }
                         className="mr-2 h-4 w-4 text-primary-500 focus:ring-primary-400"
                       />
                       <span className="text-neutral-700">{category}</span>
@@ -135,50 +127,9 @@ const ProductListPage: React.FC = () => {
                   ))}
                 </div>
               </div>
-              
-              {/* Price Filter */}
-              <div>
-                <h3 className="font-medium text-neutral-800 mb-3">Precio</h3>
-                <div className="space-y-2">
-                  <label className="flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={activeFilters.priceRange?.toString() === [0, 15000].toString()}
-                      onChange={() => handlePriceFilter(
-                        activeFilters.priceRange?.toString() === [0, 15000].toString() ? null : [0, 15000]
-                      )}
-                      className="mr-2 h-4 w-4 text-primary-500 focus:ring-primary-400"
-                    />
-                    <span className="text-neutral-700">Hasta $15,000</span>
-                  </label>
-                  <label className="flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={activeFilters.priceRange?.toString() === [15000, 25000].toString()}
-                      onChange={() => handlePriceFilter(
-                        activeFilters.priceRange?.toString() === [15000, 25000].toString() ? null : [15000, 25000]
-                      )}
-                      className="mr-2 h-4 w-4 text-primary-500 focus:ring-primary-400"
-                    />
-                    <span className="text-neutral-700">$15,000 - $25,000</span>
-                  </label>
-                  <label className="flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={activeFilters.priceRange?.toString() === [25000, 1000000].toString()}
-                      onChange={() => handlePriceFilter(
-                        activeFilters.priceRange?.toString() === [25000, 1000000].toString() ? null : [25000, 1000000]
-                      )}
-                      className="mr-2 h-4 w-4 text-primary-500 focus:ring-primary-400"
-                    />
-                    <span className="text-neutral-700">Más de $25,000</span>
-                  </label>
-                </div>
-              </div>
             </div>
           </div>
-          
-          {/* Product Grid */}
+
           <div className="lg:w-3/4">
             {filteredProducts.length > 0 ? (
               <ProductGrid products={filteredProducts} />

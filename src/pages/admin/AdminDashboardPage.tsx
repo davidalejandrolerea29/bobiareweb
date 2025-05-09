@@ -8,22 +8,49 @@ import {
   TrendingUp,
   AlertCircle,
   Users,
-  DollarSign
+  DollarSign,
+  LogOut,
+  Plus,
+  User 
 } from 'lucide-react';
 
 const AdminDashboardPage: React.FC = () => {
   return (
     <div className="py-8">
       <div className="container mx-auto px-4">
-        <div className="mb-8">
-          <h1 className="font-heading text-3xl font-bold text-neutral-800 mb-2">
-            Panel de Administración
-          </h1>
-          <p className="text-neutral-600">
-            Gestiona pedidos, inventario y seguimiento de servicios.
-          </p>
-        </div>
         
+        {/* Barra superior con logo de usuario y botón de agregar producto */}
+        <div className="flex justify-between items-center mb-8">
+          {/* Aquí va el logo de usuario o el botón de cerrar sesión */}
+          <div className="flex items-center space-x-4">
+            <Link 
+              to="/perfil"
+              className="text-neutral-800 hover:text-primary-600"
+            >
+              <div className="flex items-center space-x-2">
+  <User size={32} className="text-neutral-800" />
+  <span className="font-medium">Usuario</span>
+</div>
+            </Link>
+            <button 
+              onClick={() => alert('Cerrar sesión')}
+              className="text-neutral-800 hover:text-red-500"
+            >
+              <LogOut size={20} />
+            </button>
+          </div>
+
+          {/* Botón de agregar producto */}
+          <Link 
+  to="/admin/addproduct"
+  className="bg-primary-600 text-white p-3 rounded-md flex items-center hover:bg-primary-700 transition-all"
+>
+  <Plus size={18} className="mr-2" />
+  Agregar Producto
+</Link>
+
+        </div>
+
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {/* Total Orders */}
@@ -122,6 +149,7 @@ const AdminDashboardPage: React.FC = () => {
                     <td className="py-4 px-4 text-sm font-medium">$25,000</td>
                   </tr>
                   
+
                   {/* Order 2 */}
                   <tr className="border-b border-neutral-200 hover:bg-neutral-50">
                     <td className="py-4 px-4 text-sm">#12344</td>
@@ -133,32 +161,6 @@ const AdminDashboardPage: React.FC = () => {
                       </span>
                     </td>
                     <td className="py-4 px-4 text-sm font-medium">$35,000</td>
-                  </tr>
-                  
-                  {/* Order 3 */}
-                  <tr className="border-b border-neutral-200 hover:bg-neutral-50">
-                    <td className="py-4 px-4 text-sm">#12343</td>
-                    <td className="py-4 px-4 text-sm">Carlos Rodríguez</td>
-                    <td className="py-4 px-4 text-sm">Restauración de Muebles</td>
-                    <td className="py-4 px-4">
-                      <span className="inline-block px-2 py-1 text-xs font-medium bg-neutral-100 text-neutral-700 rounded">
-                        Pendiente
-                      </span>
-                    </td>
-                    <td className="py-4 px-4 text-sm font-medium">$18,000</td>
-                  </tr>
-                  
-                  {/* Order 4 */}
-                  <tr className="hover:bg-neutral-50">
-                    <td className="py-4 px-4 text-sm">#12342</td>
-                    <td className="py-4 px-4 text-sm">Laura Fernández</td>
-                    <td className="py-4 px-4 text-sm">Pulido de Acero</td>
-                    <td className="py-4 px-4">
-                      <span className="inline-block px-2 py-1 text-xs font-medium bg-primary-100 text-primary-700 rounded">
-                        Enviando
-                      </span>
-                    </td>
-                    <td className="py-4 px-4 text-sm font-medium">$12,000</td>
                   </tr>
                 </tbody>
               </table>
@@ -191,46 +193,10 @@ const AdminDashboardPage: React.FC = () => {
                   <p className="text-xs text-neutral-500 mt-1">Arenado de Cuadro</p>
                 </div>
               </div>
-              
-              {/* Delivery 2 */}
-              <div className="flex items-start p-3 rounded-md hover:bg-neutral-50">
-                <div className="w-10 h-10 rounded-md bg-primary-100 text-primary-600 flex items-center justify-center mr-3 flex-shrink-0">
-                  <Calendar size={18} />
-                </div>
-                <div>
-                  <p className="font-medium text-neutral-800">Mañana, 3:00 PM</p>
-                  <p className="text-sm text-neutral-600">Entrega #12340 - Roberto Silva</p>
-                  <p className="text-xs text-neutral-500 mt-1">Powdercoating Bicicleta</p>
-                </div>
-              </div>
-              
-              {/* Delivery 3 */}
-              <div className="flex items-start p-3 rounded-md hover:bg-neutral-50">
-                <div className="w-10 h-10 rounded-md bg-primary-100 text-primary-600 flex items-center justify-center mr-3 flex-shrink-0">
-                  <Calendar size={18} />
-                </div>
-                <div>
-                  <p className="font-medium text-neutral-800">23 Aug, 11:30 AM</p>
-                  <p className="text-sm text-neutral-600">Entrega #12338 - Ana Martínez</p>
-                  <p className="text-xs text-neutral-500 mt-1">Tratamiento Anticorrosivo</p>
-                </div>
-              </div>
-              
-              {/* Delivery 4 */}
-              <div className="flex items-start p-3 rounded-md hover:bg-neutral-50">
-                <div className="w-10 h-10 rounded-md bg-primary-100 text-primary-600 flex items-center justify-center mr-3 flex-shrink-0">
-                  <Calendar size={18} />
-                </div>
-                <div>
-                  <p className="font-medium text-neutral-800">24 Aug, 2:00 PM</p>
-                  <p className="text-sm text-neutral-600">Entrega #12332 - Pedro López</p>
-                  <p className="text-xs text-neutral-500 mt-1">Arenado de Llantas</p>
-                </div>
-              </div>
             </div>
           </div>
         </div>
-        
+
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Link 

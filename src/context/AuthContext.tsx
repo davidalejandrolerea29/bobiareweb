@@ -1,26 +1,25 @@
 import React, { createContext, useState, useContext, ReactNode } from 'react';
+import { supabase } from '../services/supabaseClient';
 
-interface AuthContextType {
-  user: string | null;
+interface AuthContextProps {
+  user: any;
   login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null);
 
   const login = async (email: string, password: string) => {
-    // 🔒 Aquí va tu llamada al backend o API real
-    console.log('Simulando login...', email, password);
-
-    // Simulación de respuesta exitosa:
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setUser(email);
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw new Error(error.message);
+    setUser(data?.user); // Cambié aquí: acceder a data.user
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
   };
 
@@ -31,8 +30,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   );
 };
 
-export const useAuth = (): AuthContextType => {
+export const useAuth = (): AuthContextProps => {
   const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth debe usarse dentro de AuthProvider');
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
   return context;
 };

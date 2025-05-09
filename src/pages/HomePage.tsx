@@ -1,11 +1,29 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { supabase } from '../services/supabaseClient';
 import { Link } from 'react-router-dom';
 import { ChevronRight, Shield, Clock, Truck, PenTool as Tool } from 'lucide-react';
 import ProductGrid from '../components/products/ProductGrid';
-import { products } from '../data/products';
 
 const HomePage: React.FC = () => {
-  // Featured products - show first 4 products
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      const { data, error } = await supabase.from('products').select('*');
+
+      if (error) {
+        console.error('Error fetching products:', error);
+      } else {
+        setProducts(data || []);
+      }
+
+      setLoading(false);
+    };
+
+    fetchProducts();
+  }, []);
+
   const featuredProducts = products.slice(0, 4);
 
   return (
@@ -120,11 +138,12 @@ const HomePage: React.FC = () => {
               Servicios Destacados
             </h2>
             <Link 
-              to="/login"
-              className="text-primary-500 font-medium hover:text-primary-600 transition-colors"
-            >
-              Ver todos
-            </Link>
+  to="/productos"
+  className="text-primary-500 font-medium hover:text-primary-600 transition-colors"
+>
+  Ver todos
+</Link>
+
           </div>
 
           <ProductGrid products={featuredProducts} />

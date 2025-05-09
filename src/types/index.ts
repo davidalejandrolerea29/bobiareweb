@@ -3,16 +3,13 @@ export interface Product {
   name: string;
   category: string;
   description: string;
-  imageUrl: string;
-  basePrice: number;
-  available: boolean;
+  image: string;
+  colorId: string;
+  timeEstimate: string;
+  price: number;
+  imageFile?: File | null;
 }
 
-export interface ServiceOption {
-  id: string;
-  name: string;
-  price: number;
-}
 
 export interface ColorOption {
   id: string;
@@ -22,10 +19,12 @@ export interface ColorOption {
 }
 
 export interface DeliveryOption {
+  id:number;
   days: number;
   price: number;
   description: string;
 }
+
 
 export interface CartItem {
   id: string;

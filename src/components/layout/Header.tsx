@@ -33,7 +33,7 @@ const Header: React.FC = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex items-center">
+          <Link to="/home" className="flex items-center">
             <span className="font-heading font-bold text-2xl text-primary-600">
             <img src="/logo2.png" alt="Bobiare Logo" className="h-10 w-auto" />
             </span>
@@ -42,7 +42,7 @@ const Header: React.FC = () => {
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
             <Link 
-              to="/" 
+              to="/home" 
               className="font-medium text-neutral-800 hover:text-primary-500 transition-colors"
             >
               Inicio
