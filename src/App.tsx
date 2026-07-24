@@ -10,7 +10,8 @@ import OrderConfirmationPage from './pages/OrderConfirmationPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminOrdersPage from './pages/admin/AdminOrdersPage';
 import AdminCalendarPage from './pages/admin/AdminCalendarPage';
-import AddProductScreen from './pages/admin/AddProductScreen'; // Nueva importación
+import AddProductScreen from './pages/admin/AddProductScreen';
+import AdminLayout from './pages/admin/AdminLayout';
 import NotFoundPage from './pages/NotFoundPage';
 import PromoPopup from './components/marketing/PromoPopup';
 import Login from './pages/LoginPage';
@@ -56,39 +57,20 @@ function App() {
             <Route path="checkout" element={<CheckoutPage />} />
             <Route path="register" element={<RegisterScreen />} />
             <Route path="confirmacion/:orderId" element={<OrderConfirmationPage />} />
-            <Route
-              path="admin"
-              element={
-                <ProtectedRoute staffOnly>
-                  <AdminDashboardPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="admin/pedidos"
-              element={
-                <ProtectedRoute staffOnly>
-                  <AdminOrdersPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="admin/calendario"
-              element={
-                <ProtectedRoute staffOnly>
-                  <AdminCalendarPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="admin/addproduct"
-              element={
-                <ProtectedRoute staffOnly>
-                  <AddProductScreen />
-                </ProtectedRoute>
-              }
-            />
             <Route path="*" element={<NotFoundPage />} />
+          </Route>
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute staffOnly>
+                <AdminLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<AdminDashboardPage />} />
+            <Route path="pedidos" element={<AdminOrdersPage />} />
+            <Route path="calendario" element={<AdminCalendarPage />} />
+            <Route path="addproduct" element={<AddProductScreen />} />
           </Route>
           <Route path="/login" element={<Login />} />
         </Routes>

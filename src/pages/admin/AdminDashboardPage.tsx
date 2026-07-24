@@ -1,147 +1,182 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
+  ArrowRight,
+  CalendarDays,
+  CircleDollarSign,
+  Clock3,
+  PackageCheck,
+  PackagePlus,
   ShoppingBag,
-  Calendar,
-  Package,
-  LogOut,
-  Plus,
-  User,
+  Truck,
 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
 import { ordersApi } from '../../services/ordersApi';
 import { Order } from '../../types';
 
-const statusLabels: Record<string, string> = {
-  pending_payment: 'Pendiente de pago',
-  deposit_paid: 'Seña pagada',
-  shipped_by_customer: 'En camino al taller',
-  received: 'Recibido',
+const statusMeta: Record<string, { label: string; className: string }> = {
+  pending_payment: { label: 'Pendiente de pago', className: 'bg-neutral-100 text-neutral-700' },
+  deposit_paid: { label: 'Seña pagada', className: 'bg-amber-100 text-amber-800' },
+  shipped_by_customer: { label: 'En camino', className: 'bg-blue-100 text-blue-800' },
+  received: { label: 'Recibido', className: 'bg-emerald-100 text-emerald-800' },
 };
 
+const formatMoney = (value: string | number) =>
+  new Intl.NumberFormat('es-AR', {
+    style: 'currency',
+    currency: 'ARS',
+    maximumFractionDigits: 0,
+  }).format(Number(value));
+
 const AdminDashboardPage: React.FC = () => {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  const [recentOrders, setRecentOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [totalOrders, setTotalOrders] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     ordersApi
       .adminList()
       .then((response) => {
-        setRecentOrders(response.data.slice(0, 5));
+        setOrders(response.data);
         setTotalOrders(response.total);
       })
       .catch(() => {
-        setRecentOrders([]);
+        setOrders([]);
         setTotalOrders(null);
-      });
+      })
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login');
-  };
+  const pending = orders.filter((order) => order.status === 'pending_payment').length;
+  const inTransit = orders.filter((order) => order.status === 'shipped_by_customer').length;
+  const received = orders.filter((order) => order.status === 'received').length;
+  const recentOrders = orders.slice(0, 5);
+
+  const stats = [
+    {
+      label: 'Pedidos totales',
+      value: totalOrders ?? '—',
+      note: 'Registrados en el sistema',
+      icon: ShoppingBag,
+      iconClass: 'bg-blue-50 text-blue-700',
+    },
+    {
+      label: 'Pagos pendientes',
+      value: loading ? '—' : pending,
+      note: 'Requieren seguimiento',
+      icon: Clock3,
+      iconClass: 'bg-amber-50 text-amber-700',
+    },
+    {
+      label: 'En camino',
+      value: loading ? '—' : inTransit,
+      note: 'Hacia el taller',
+      icon: Truck,
+      iconClass: 'bg-cyan-50 text-cyan-700',
+    },
+    {
+      label: 'Recibidos',
+      value: loading ? '—' : received,
+      note: 'Listos para procesar',
+      icon: PackageCheck,
+      iconClass: 'bg-emerald-50 text-emerald-700',
+    },
+  ];
 
   return (
-    <div className="py-8">
-      <div className="container mx-auto px-4">
-        <div className="flex justify-between items-center mb-8">
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <User size={32} className="text-neutral-800" />
+    <div className="space-y-8">
+      <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+        <div>
+          <h2 className="text-2xl font-bold text-neutral-900">Estado del negocio</h2>
+          <p className="mt-1 text-sm text-neutral-500">
+            Seguimiento rápido de la operación y los últimos pedidos.
+          </p>
+        </div>
+        <Link
+          to="/admin/addproduct"
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-primary-700"
+        >
+          <PackagePlus size={18} />
+          Nuevo producto
+        </Link>
+      </section>
+
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Indicadores">
+        {stats.map(({ label, value, note, icon: Icon, iconClass }) => (
+          <article key={label} className="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
+            <div className="flex items-start justify-between gap-4">
               <div>
-                <span className="font-medium block">{user?.name}</span>
-                <span className="text-xs text-neutral-500">{user?.role?.name}</span>
+                <p className="text-sm font-medium text-neutral-500">{label}</p>
+                <p className="mt-2 text-3xl font-bold text-neutral-900">{value}</p>
               </div>
+              <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-md ${iconClass}`}>
+                <Icon size={20} />
+              </span>
             </div>
-            <button onClick={handleLogout} className="text-neutral-800 hover:text-red-500" title="Cerrar sesión">
-              <LogOut size={20} />
-            </button>
-          </div>
+            <p className="mt-3 text-xs text-neutral-500">{note}</p>
+          </article>
+        ))}
+      </section>
 
-          <Link
-            to="/admin/addproduct"
-            className="bg-primary-600 text-white p-3 rounded-md flex items-center hover:bg-primary-700 transition-all"
-          >
-            <Plus size={18} className="mr-2" />
-            Agregar Producto
-          </Link>
-        </div>
-
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-medium text-neutral-600">Pedidos Totales</h3>
-              <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
-                <ShoppingBag size={20} className="text-primary-600" />
-              </div>
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-4">
+            <div>
+              <h3 className="font-semibold text-neutral-900">Pedidos recientes</h3>
+              <p className="mt-0.5 text-xs text-neutral-500">Actividad más reciente</p>
             </div>
-            <p className="text-3xl font-bold text-neutral-800">
-              {totalOrders ?? '—'}
-            </p>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-medium text-neutral-600">Ingresos del mes</h3>
-              <div className="w-10 h-10 rounded-full bg-success-100 flex items-center justify-center">
-                <ShoppingBag size={20} className="text-success-500" />
-              </div>
-            </div>
-            <p className="text-neutral-400 text-sm">Próximamente (falta reporte en el backend)</p>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-medium text-neutral-600">Clientes Totales</h3>
-              <div className="w-10 h-10 rounded-full bg-secondary-100 flex items-center justify-center">
-                <User size={20} className="text-secondary-600" />
-              </div>
-            </div>
-            <p className="text-neutral-400 text-sm">Próximamente (falta reporte en el backend)</p>
-          </div>
-        </div>
-
-        {/* Recent Orders */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="font-heading font-semibold text-xl text-neutral-800">
-              Pedidos Recientes
-            </h2>
-            <Link to="/admin/pedidos" className="text-sm text-primary-500 hover:text-primary-600 transition-colors">
-              Ver todos
+            <Link
+              to="/admin/pedidos"
+              className="inline-flex items-center gap-1 text-sm font-semibold text-primary-600 hover:text-primary-700"
+            >
+              Ver todos <ArrowRight size={16} />
             </Link>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[500px]">
+            <table className="w-full min-w-[640px]">
               <thead>
-                <tr className="border-b border-neutral-200">
-                  <th className="py-3 px-4 text-left text-sm font-medium text-neutral-500">ID</th>
-                  <th className="py-3 px-4 text-left text-sm font-medium text-neutral-500">Cliente</th>
-                  <th className="py-3 px-4 text-left text-sm font-medium text-neutral-500">Estado</th>
-                  <th className="py-3 px-4 text-left text-sm font-medium text-neutral-500">Total</th>
+                <tr className="bg-neutral-50 text-left text-xs font-semibold uppercase text-neutral-500">
+                  <th className="px-5 py-3">Pedido</th>
+                  <th className="px-5 py-3">Cliente</th>
+                  <th className="px-5 py-3">Estado</th>
+                  <th className="px-5 py-3 text-right">Total</th>
                 </tr>
               </thead>
-              <tbody>
-                {recentOrders.map((order) => (
-                  <tr key={order.id} className="border-b border-neutral-200 hover:bg-neutral-50">
-                    <td className="py-4 px-4 text-sm">#{order.id}</td>
-                    <td className="py-4 px-4 text-sm">{order.user?.name ?? '—'}</td>
-                    <td className="py-4 px-4">
-                      <span className="inline-block px-2 py-1 text-xs font-medium bg-primary-100 text-primary-700 rounded">
-                        {statusLabels[order.status] ?? order.status}
-                      </span>
-                    </td>
-                    <td className="py-4 px-4 text-sm font-medium">${Number(order.total).toLocaleString()}</td>
-                  </tr>
-                ))}
-                {recentOrders.length === 0 && (
+              <tbody className="divide-y divide-neutral-100">
+                {recentOrders.map((order) => {
+                  const status = statusMeta[order.status] ?? {
+                    label: order.status,
+                    className: 'bg-neutral-100 text-neutral-700',
+                  };
+                  return (
+                    <tr key={order.id} className="hover:bg-neutral-50">
+                      <td className="px-5 py-4 text-sm font-semibold text-neutral-900">#{order.id}</td>
+                      <td className="px-5 py-4">
+                        <p className="text-sm font-medium text-neutral-800">{order.user?.name ?? 'Sin nombre'}</p>
+                        <p className="text-xs text-neutral-500">{order.user?.email ?? 'Cliente invitado'}</p>
+                      </td>
+                      <td className="px-5 py-4">
+                        <span className={`inline-flex rounded px-2 py-1 text-xs font-semibold ${status.className}`}>
+                          {status.label}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4 text-right text-sm font-semibold text-neutral-900">
+                        {formatMoney(order.total)}
+                      </td>
+                    </tr>
+                  );
+                })}
+                {!loading && recentOrders.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="py-6 text-center text-sm text-neutral-500">
-                      Todavía no hay pedidos.
+                    <td colSpan={4} className="px-5 py-12 text-center text-sm text-neutral-500">
+                      Todavía no hay pedidos registrados.
+                    </td>
+                  </tr>
+                )}
+                {loading && (
+                  <tr>
+                    <td colSpan={4} className="px-5 py-12 text-center text-sm text-neutral-500">
+                      Cargando actividad...
                     </td>
                   </tr>
                 )}
@@ -150,48 +185,42 @@ const AdminDashboardPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Link
-            to="/admin/pedidos"
-            className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow flex items-center"
-          >
-            <div className="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center mr-4">
-              <ShoppingBag size={22} className="text-primary-600" />
-            </div>
-            <div>
-              <h3 className="font-medium text-lg text-neutral-800">Gestionar Pedidos</h3>
-              <p className="text-sm text-neutral-600">Ver y actualizar estado de pedidos</p>
-            </div>
-          </Link>
-
-          <Link
-            to="/admin/calendario"
-            className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow flex items-center"
-          >
-            <div className="w-12 h-12 rounded-full bg-secondary-100 flex items-center justify-center mr-4">
-              <Calendar size={22} className="text-secondary-600" />
-            </div>
-            <div>
-              <h3 className="font-medium text-lg text-neutral-800">Calendario</h3>
-              <p className="text-sm text-neutral-600">Programación de entregas (próximamente)</p>
-            </div>
-          </Link>
-
-          <Link
-            to="/productos"
-            className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow flex items-center"
-          >
-            <div className="w-12 h-12 rounded-full bg-accent-100 flex items-center justify-center mr-4">
-              <Package size={22} className="text-accent-600" />
-            </div>
-            <div>
-              <h3 className="font-medium text-lg text-neutral-800">Ver Productos</h3>
-              <p className="text-sm text-neutral-600">Gestionar servicios y precios</p>
-            </div>
-          </Link>
-        </div>
-      </div>
+        <aside className="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
+          <h3 className="font-semibold text-neutral-900">Accesos rápidos</h3>
+          <div className="mt-4 divide-y divide-neutral-100">
+            <Link to="/admin/pedidos" className="group flex items-center gap-3 py-4 first:pt-0">
+              <span className="grid h-10 w-10 place-items-center rounded-md bg-blue-50 text-blue-700">
+                <ShoppingBag size={19} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-neutral-800">Gestionar pedidos</span>
+                <span className="block text-xs text-neutral-500">Buscar y actualizar estados</span>
+              </span>
+              <ArrowRight size={17} className="text-neutral-300 group-hover:text-primary-600" />
+            </Link>
+            <Link to="/admin/calendario" className="group flex items-center gap-3 py-4">
+              <span className="grid h-10 w-10 place-items-center rounded-md bg-emerald-50 text-emerald-700">
+                <CalendarDays size={19} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-neutral-800">Abrir calendario</span>
+                <span className="block text-xs text-neutral-500">Revisar la planificación</span>
+              </span>
+              <ArrowRight size={17} className="text-neutral-300 group-hover:text-primary-600" />
+            </Link>
+            <Link to="/admin/addproduct" className="group flex items-center gap-3 py-4">
+              <span className="grid h-10 w-10 place-items-center rounded-md bg-orange-50 text-orange-700">
+                <CircleDollarSign size={19} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-neutral-800">Agregar producto</span>
+                <span className="block text-xs text-neutral-500">Publicar un nuevo servicio</span>
+              </span>
+              <ArrowRight size={17} className="text-neutral-300 group-hover:text-primary-600" />
+            </Link>
+          </div>
+        </aside>
+      </section>
     </div>
   );
 };

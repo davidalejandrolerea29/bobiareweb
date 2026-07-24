@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AlertCircle, ArrowLeft, ImagePlus, LoaderCircle, PackagePlus, X } from 'lucide-react';
 import { catalogApi } from '../../services/catalogApi';
 import { ApiError } from '../../services/apiClient';
 import { Category, DeliveryTime } from '../../types';
@@ -14,13 +15,11 @@ const fileToBase64 = (file: File): Promise<string> =>
 
 const AddProductScreen: React.FC = () => {
   const navigate = useNavigate();
-
   const [categories, setCategories] = useState<Category[]>([]);
   const [deliveryTimes, setDeliveryTimes] = useState<DeliveryTime[]>([]);
   const [loadingCatalog, setLoadingCatalog] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
@@ -28,6 +27,7 @@ const AddProductScreen: React.FC = () => {
   const [categoryIds, setCategoryIds] = useState<number[]>([]);
   const [deliveryTimeIds, setDeliveryTimeIds] = useState<number[]>([]);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const imagePreview = useMemo(() => imageFile ? URL.createObjectURL(imageFile) : null, [imageFile]);
 
   useEffect(() => {
     catalogApi
@@ -36,26 +36,28 @@ const AddProductScreen: React.FC = () => {
         setCategories(data.categories);
         setDeliveryTimes(data.delivery_times);
       })
-      .catch(() => setError('No se pudo cargar categorías y tiempos de entrega'))
+      .catch(() => setError('No se pudieron cargar las categorías y tiempos de entrega.'))
       .finally(() => setLoadingCatalog(false));
   }, []);
 
-  const toggleId = (list: number[], id: number) =>
-    list.includes(id) ? list.filter((x) => x !== id) : [...list, id];
+  useEffect(() => () => {
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+  }, [imagePreview]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const toggleId = (list: number[], id: number) =>
+    list.includes(id) ? list.filter((item) => item !== id) : [...list, id];
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setError(null);
 
     if (categoryIds.length === 0 || deliveryTimeIds.length === 0 || !imageFile) {
-      setError('Elegí al menos una categoría, un tiempo de entrega, y subí una imagen.');
+      setError('Seleccioná una categoría, un tiempo de entrega y una imagen.');
       return;
     }
 
     setSubmitting(true);
     try {
-      const imageBase64 = await fileToBase64(imageFile);
-
       await catalogApi.create({
         name,
         description: description || undefined,
@@ -63,92 +65,205 @@ const AddProductScreen: React.FC = () => {
         offer_price: offerPrice ? Number(offerPrice) : null,
         category_ids: categoryIds,
         delivery_time_ids: deliveryTimeIds,
-        images: [imageBase64],
+        images: [await fileToBase64(imageFile)],
       });
-
       navigate('/admin');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Error al agregar el producto');
+      setError(err instanceof ApiError ? err.message : 'No se pudo agregar el producto.');
     } finally {
       setSubmitting(false);
     }
   };
 
   if (loadingCatalog) {
-    return <div className="max-w-lg mx-auto p-4 text-center text-neutral-500">Cargando...</div>;
+    return (
+      <div className="grid min-h-80 place-items-center text-neutral-500">
+        <div className="text-center">
+          <LoaderCircle size={28} className="mx-auto animate-spin text-primary-600" />
+          <p className="mt-3 text-sm">Cargando formulario...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="max-w-lg mx-auto p-4">
-      <h2 className="text-2xl font-semibold mb-4">Agregar Producto</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <input
-          type="text" value={name} onChange={(e) => setName(e.target.value)}
-          placeholder="Nombre" className="w-full p-2 border rounded" required
-        />
-        <textarea
-          value={description} onChange={(e) => setDescription(e.target.value)}
-          placeholder="Descripción" className="w-full p-2 border rounded"
-        />
-        <div className="grid grid-cols-2 gap-3">
-          <input
-            type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)}
-            placeholder="Precio" className="w-full p-2 border rounded" required
-          />
-          <input
-            type="number" step="0.01" value={offerPrice} onChange={(e) => setOfferPrice(e.target.value)}
-            placeholder="Precio oferta (opcional)" className="w-full p-2 border rounded"
-          />
-        </div>
-
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <p className="text-sm font-medium mb-1">Categorías *</p>
-          <div className="flex flex-wrap gap-2">
-            {categories.map((category) => (
-              <label key={category.id} className="flex items-center gap-1 border rounded px-2 py-1 text-sm cursor-pointer">
+          <button
+            type="button"
+            onClick={() => navigate('/admin')}
+            className="mb-3 inline-flex items-center gap-1 text-sm font-medium text-neutral-500 hover:text-primary-700"
+          >
+            <ArrowLeft size={16} /> Volver al resumen
+          </button>
+          <h2 className="text-2xl font-bold text-neutral-900">Publicar producto</h2>
+          <p className="mt-1 text-sm text-neutral-500">Completá la información que verá el cliente en la tienda.</p>
+        </div>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={() => navigate('/admin')}
+            className="inline-flex h-10 items-center justify-center rounded-md border border-neutral-300 bg-white px-4 text-sm font-semibold text-neutral-700 hover:bg-neutral-50"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={submitting}
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary-600 px-4 text-sm font-semibold text-white hover:bg-primary-700 disabled:cursor-wait disabled:opacity-60"
+          >
+            {submitting ? <LoaderCircle size={18} className="animate-spin" /> : <PackagePlus size={18} />}
+            {submitting ? 'Publicando' : 'Publicar'}
+          </button>
+        </div>
+      </div>
+
+      {error && (
+        <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <AlertCircle size={18} className="shrink-0" />
+          {error}
+        </div>
+      )}
+
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="space-y-6">
+          <section className="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm sm:p-6">
+            <div className="mb-5">
+              <h3 className="font-semibold text-neutral-900">Información general</h3>
+              <p className="mt-1 text-xs text-neutral-500">Nombre, descripción y valores de venta.</p>
+            </div>
+            <div className="space-y-5">
+              <label className="block">
+                <span className="mb-2 block text-sm font-semibold text-neutral-700">Nombre del producto</span>
                 <input
-                  type="checkbox"
-                  checked={categoryIds.includes(category.id)}
-                  onChange={() => setCategoryIds((prev) => toggleId(prev, category.id))}
+                  type="text"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  placeholder="Ej. Arenado de cuadro de bicicleta"
+                  className="h-11 w-full rounded-md border border-neutral-300 px-3 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                  required
                 />
-                {category.description}
               </label>
-            ))}
-          </div>
+              <label className="block">
+                <span className="mb-2 block text-sm font-semibold text-neutral-700">Descripción</span>
+                <textarea
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                  placeholder="Describí el servicio, alcance y terminación."
+                  rows={5}
+                  className="w-full resize-y rounded-md border border-neutral-300 p-3 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                />
+              </label>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block">
+                  <span className="mb-2 block text-sm font-semibold text-neutral-700">Precio</span>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-neutral-400">$</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={price}
+                      onChange={(event) => setPrice(event.target.value)}
+                      placeholder="0,00"
+                      className="h-11 w-full rounded-md border border-neutral-300 pl-7 pr-3 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                      required
+                    />
+                  </div>
+                </label>
+                <label className="block">
+                  <span className="mb-2 block text-sm font-semibold text-neutral-700">Precio de oferta</span>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-neutral-400">$</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={offerPrice}
+                      onChange={(event) => setOfferPrice(event.target.value)}
+                      placeholder="Opcional"
+                      className="h-11 w-full rounded-md border border-neutral-300 pl-7 pr-3 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                    />
+                  </div>
+                </label>
+              </div>
+            </div>
+          </section>
+
+          <section className="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm sm:p-6">
+            <h3 className="font-semibold text-neutral-900">Disponibilidad</h3>
+            <p className="mt-1 text-xs text-neutral-500">Definí cómo se organiza el producto en el catálogo.</p>
+            <fieldset className="mt-5">
+              <legend className="text-sm font-semibold text-neutral-700">Categorías</legend>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                {categories.map((category) => (
+                  <label key={category.id} className="flex min-h-11 cursor-pointer items-center gap-3 rounded-md border border-neutral-200 px-3 text-sm text-neutral-700 hover:bg-neutral-50">
+                    <input
+                      type="checkbox"
+                      checked={categoryIds.includes(category.id)}
+                      onChange={() => setCategoryIds((current) => toggleId(current, category.id))}
+                      className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+                    />
+                    {category.description}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <fieldset className="mt-6">
+              <legend className="text-sm font-semibold text-neutral-700">Tiempos de entrega</legend>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                {deliveryTimes.map((deliveryTime) => (
+                  <label key={deliveryTime.id} className="flex min-h-11 cursor-pointer items-center gap-3 rounded-md border border-neutral-200 px-3 text-sm text-neutral-700 hover:bg-neutral-50">
+                    <input
+                      type="checkbox"
+                      checked={deliveryTimeIds.includes(deliveryTime.id)}
+                      onChange={() => setDeliveryTimeIds((current) => toggleId(current, deliveryTime.id))}
+                      className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+                    />
+                    {deliveryTime.description}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          </section>
         </div>
 
-        <div>
-          <p className="text-sm font-medium mb-1">Tiempos de entrega disponibles *</p>
-          <div className="flex flex-wrap gap-2">
-            {deliveryTimes.map((deliveryTime) => (
-              <label key={deliveryTime.id} className="flex items-center gap-1 border rounded px-2 py-1 text-sm cursor-pointer">
+        <aside>
+          <section className="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
+            <h3 className="font-semibold text-neutral-900">Imagen principal</h3>
+            <p className="mt-1 text-xs text-neutral-500">Usá una foto clara y horizontal del trabajo.</p>
+            {imagePreview ? (
+              <div className="relative mt-5 overflow-hidden rounded-md border border-neutral-200 bg-neutral-100">
+                <img src={imagePreview} alt="Vista previa del producto" className="aspect-[4/3] w-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => setImageFile(null)}
+                  className="absolute right-2 top-2 grid h-9 w-9 place-items-center rounded-md bg-white text-neutral-700 shadow hover:bg-red-50 hover:text-red-600"
+                  aria-label="Quitar imagen"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            ) : (
+              <label className="mt-5 grid aspect-[4/3] cursor-pointer place-items-center rounded-md border-2 border-dashed border-neutral-300 bg-neutral-50 text-center hover:border-primary-400 hover:bg-primary-50">
+                <span>
+                  <ImagePlus size={28} className="mx-auto text-neutral-400" />
+                  <span className="mt-3 block text-sm font-semibold text-neutral-700">Seleccionar imagen</span>
+                  <span className="mt-1 block text-xs text-neutral-500">PNG, JPG o WEBP</span>
+                </span>
                 <input
-                  type="checkbox"
-                  checked={deliveryTimeIds.includes(deliveryTime.id)}
-                  onChange={() => setDeliveryTimeIds((prev) => toggleId(prev, deliveryTime.id))}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={(event) => setImageFile(event.target.files?.[0] ?? null)}
+                  className="sr-only"
                 />
-                {deliveryTime.description}
               </label>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <p className="text-sm font-medium mb-1">Imagen *</p>
-          <input
-            type="file" accept="image/*"
-            onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
-            className="w-full p-2 border rounded"
-          />
-        </div>
-
-        {error && <p className="text-sm text-error-500">{error}</p>}
-
-        <button type="submit" disabled={submitting} className="w-full bg-primary-500 text-white py-2 rounded disabled:opacity-60">
-          {submitting ? 'Guardando...' : 'Agregar Producto'}
-        </button>
-      </form>
-    </div>
+            )}
+          </section>
+        </aside>
+      </div>
+    </form>
   );
 };
 
