@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { ApiError } from '../services/apiClient';
+
+const STAFF_ROLES = ['Administrador', 'Gerente General', 'Finanzas', 'Stock'];
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -15,10 +19,12 @@ const Login: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      await login(email, password);
-      navigate('/admin'); // Redirige a la pantalla de administración
+      const user = await login(email, password);
+      const redirectTo = (location.state as { from?: { pathname: string } } | undefined)?.from?.pathname;
+      const isStaff = !!user.role && STAFF_ROLES.includes(user.role.name);
+      navigate(redirectTo ?? (isStaff ? '/admin' : '/home'));
     } catch (err) {
-      setError('Correo o contraseña incorrectos');
+      setError(err instanceof ApiError ? err.message : 'Correo o contraseña incorrectos');
     } finally {
       setLoading(false);
     }
@@ -57,15 +63,14 @@ const Login: React.FC = () => {
           {error && <div className="text-red-500 text-sm">{error}</div>}
           <button
             type="submit"
-            className="w-full bg-primary-500 text-white py-2 rounded-xl hover:bg-primary-600 transition-colors"
+            className="w-full bg-primary-500 text-white py-2 rounded-xl hover:bg-primary-600 transition-colors disabled:opacity-60"
             disabled={loading}
           >
             {loading ? 'Cargando...' : 'Iniciar Sesión'}
           </button>
         </form>
         <div className="mt-4 flex justify-between text-sm">
-          <a href="#" className="text-primary-500 hover:underline">¿Olvidaste tu contraseña?</a>
-          <a href="register" className="text-primary-500 hover:underline">Crear cuenta</a>
+          <a href="/register" className="text-primary-500 hover:underline">Crear cuenta</a>
         </div>
       </div>
     </div>

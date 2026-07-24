@@ -1,82 +1,58 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Filter, ChevronDown } from 'lucide-react';
 import ProductGrid from '../components/products/ProductGrid';
-import { Product } from '../types';
-import { supabase } from '../services/supabaseClient';
+import { ProductSummary } from '../types';
+import { catalogApi } from '../services/catalogApi';
 
 const ProductListPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const categoryParam = searchParams.get('category');
   const serviceParam = searchParams.get('service');
 
-  const [products, setProducts] = useState<Product[]>([]);
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<ProductSummary[]>([]);
   const [showFilters, setShowFilters] = useState(false);
-  const [activeFilters, setActiveFilters] = useState<{
-    category: string | null;
-  }>({
-    category: categoryParam,
-  });
+  const [activeCategory, setActiveCategory] = useState<string | null>(categoryParam);
 
-  // ✅ Cargar productos desde Supabase
   useEffect(() => {
-    const fetchProducts = async () => {
-      const { data, error } = await supabase.from('products').select('*');
-      if (error) {
-        console.error('Error al cargar productos:', error);
-      } else {
-         console.log('esto es fectch product',data); 
-        setProducts(data || []);
-      }
-    };
-
-    fetchProducts();
+    catalogApi
+      .allProducts()
+      .then(setProducts)
+      .catch((error) => console.error('Error al cargar productos:', error));
   }, []);
 
-  // ✅ Filtrar productos basados en parámetros y filtros activos
-  useEffect(() => {
+  const filteredProducts = useMemo(() => {
     let result = [...products];
 
-    if (categoryParam) {
-      result = result.filter(product => product.category === categoryParam);
-    }
-
     if (serviceParam) {
-      result = result.filter(product =>
+      result = result.filter((product) =>
         product.name.toLowerCase().includes(serviceParam.toLowerCase())
       );
     }
 
-    if (activeFilters.category) {
-      result = result.filter(product => product.category === activeFilters.category);
+    if (activeCategory) {
+      result = result.filter((product) => product.categories.includes(activeCategory));
     }
 
-    setFilteredProducts(result);
-  }, [categoryParam, serviceParam, activeFilters, products]);
+    return result;
+  }, [products, serviceParam, activeCategory]);
 
   const handleCategoryFilter = (category: string | null) => {
-    setActiveFilters(prev => ({
-      ...prev,
-      category: category,
-    }));
+    setActiveCategory(category);
   };
 
   const resetFilters = () => {
-    setActiveFilters({
-      category: null,
-    });
+    setActiveCategory(null);
   };
 
-  // ✅ Sacar categorías únicas de los productos cargados
-  const categories = Array.from(new Set(products.map(product => product.category)));
+  const categories = Array.from(new Set(products.flatMap((product) => product.categories)));
 
   return (
     <div className="py-8">
       <div className="container mx-auto px-4">
         <div className="mb-8">
           <h1 className="font-heading text-3xl font-bold text-neutral-800 mb-2">
-            {categoryParam ? `Servicios de ${categoryParam}` : 'Todos los Servicios'}
+            {activeCategory ? `Servicios de ${activeCategory}` : 'Todos los Servicios'}
           </h1>
           <p className="text-neutral-600">
             Encuentra el tratamiento de superficie perfecto para tu proyecto
@@ -116,9 +92,9 @@ const ProductListPage: React.FC = () => {
                     <label key={category} className="flex items-center cursor-pointer">
                       <input
                         type="checkbox"
-                        checked={activeFilters.category === category}
+                        checked={activeCategory === category}
                         onChange={() =>
-                          handleCategoryFilter(activeFilters.category === category ? null : category)
+                          handleCategoryFilter(activeCategory === category ? null : category)
                         }
                         className="mr-2 h-4 w-4 text-primary-500 focus:ring-primary-400"
                       />

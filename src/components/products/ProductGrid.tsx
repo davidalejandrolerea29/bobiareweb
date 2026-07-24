@@ -1,9 +1,9 @@
 import React from 'react';
 import ProductCard from './ProductCard';
-import { Product } from '../../types';
+import { ProductSummary } from '../../types';
 
 interface ProductGridProps {
-  products: Product[];
+  products: ProductSummary[];
   title?: string;
 }
 

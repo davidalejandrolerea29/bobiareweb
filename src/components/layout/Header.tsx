@@ -1,14 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Search, ShoppingCart, Menu, X, User } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Search, ShoppingCart, Menu, X, User, LogOut } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
-import logo from 'src/assets/logo1.png';
+import { useAuth } from '../../context/AuthContext';
 
 const Header: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { totalItems } = useCart();
+  const { isAuthenticated, isStaff, user, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/home');
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -21,6 +28,7 @@ const Header: React.FC = () => {
 
   // Close mobile menu when changing routes
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reacciona a cambios de ruta, sin loop
     setMobileMenuOpen(false);
   }, [location.pathname]);
 
@@ -86,9 +94,28 @@ const Header: React.FC = () => {
                 </span>
               )}
             </Link>
-            <Link to="/login" className="p-2 rounded-full hover:bg-neutral-100 transition-colors">
-              <User size={20} className="text-neutral-700" />
-            </Link>
+            {isAuthenticated ? (
+              <div className="flex items-center space-x-1">
+                <Link
+                  to={isStaff ? '/admin' : '/home'}
+                  className="p-2 rounded-full hover:bg-neutral-100 transition-colors flex items-center"
+                  title={user?.name}
+                >
+                  <User size={20} className="text-neutral-700" />
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="p-2 rounded-full hover:bg-neutral-100 transition-colors"
+                  title="Cerrar sesión"
+                >
+                  <LogOut size={20} className="text-neutral-700" />
+                </button>
+              </div>
+            ) : (
+              <Link to="/login" className="p-2 rounded-full hover:bg-neutral-100 transition-colors">
+                <User size={20} className="text-neutral-700" />
+              </Link>
+            )}
             <button 
               className="md:hidden p-2 rounded-full hover:bg-neutral-100 transition-colors"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}

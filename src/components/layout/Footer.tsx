@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Facebook, Instagram, Twitter, Mail, Phone, MapPin } from 'lucide-react';
+import { Mail, Phone, MapPin } from 'lucide-react';
+import { FaFacebook, FaInstagram, FaTwitter } from 'react-icons/fa6';
 
 const Footer: React.FC = () => {
   return (
@@ -15,13 +16,13 @@ const Footer: React.FC = () => {
             </p>
             <div className="flex space-x-4">
               <a href="#" className="text-white hover:text-primary-400 transition-colors">
-                <Facebook size={20} />
+                <FaFacebook size={20} />
               </a>
               <a href="#" className="text-white hover:text-primary-400 transition-colors">
-                <Instagram size={20} />
+                <FaInstagram size={20} />
               </a>
               <a href="#" className="text-white hover:text-primary-400 transition-colors">
-                <Twitter size={20} />
+                <FaTwitter size={20} />
               </a>
             </div>
           </div>

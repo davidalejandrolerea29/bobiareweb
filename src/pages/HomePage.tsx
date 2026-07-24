@@ -1,27 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../services/supabaseClient';
 import { Link } from 'react-router-dom';
 import { ChevronRight, Shield, Clock, Truck, PenTool as Tool } from 'lucide-react';
 import ProductGrid from '../components/products/ProductGrid';
+import PieceAnalyzer from '../components/ai/PieceAnalyzer';
+import { catalogApi } from '../services/catalogApi';
+import { ProductSummary } from '../types';
 
 const HomePage: React.FC = () => {
-  const [products, setProducts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState<ProductSummary[]>([]);
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      const { data, error } = await supabase.from('products').select('*');
-
-      if (error) {
-        console.error('Error fetching products:', error);
-      } else {
-        setProducts(data || []);
-      }
-
-      setLoading(false);
-    };
-
-    fetchProducts();
+    catalogApi
+      .allProducts()
+      .then(setProducts)
+      .catch((error) => console.error('Error al cargar productos:', error));
   }, []);
 
   const featuredProducts = products.slice(0, 4);
@@ -62,6 +54,9 @@ const HomePage: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* Identificador de piezas con IA */}
+      <PieceAnalyzer />
 
       {/* Services Section */}
       <section className="py-16 bg-neutral-50">

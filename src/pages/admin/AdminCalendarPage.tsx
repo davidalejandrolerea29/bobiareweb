@@ -8,7 +8,8 @@ import {
   Plus,
   Clock,
   MapPin,
-  User
+  User,
+  Package
 } from 'lucide-react';
 
 // Mock deliveries data

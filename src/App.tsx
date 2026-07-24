@@ -16,6 +16,7 @@ import PromoPopup from './components/marketing/PromoPopup';
 import Login from './pages/LoginPage';
 import LandingPage from './pages/LandingPage';
 import RegisterScreen from './pages/RegisterScreen';
+import ProtectedRoute from './components/ProtectedRoute';
 
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
@@ -36,6 +37,7 @@ function App() {
       }, 5000);
       return () => clearTimeout(timer);
     } else {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reacciona a cambios de ruta, sin loop
       setShowPromo(false);
     }
   }, [location.pathname]);
@@ -54,10 +56,38 @@ function App() {
             <Route path="checkout" element={<CheckoutPage />} />
             <Route path="register" element={<RegisterScreen />} />
             <Route path="confirmacion/:orderId" element={<OrderConfirmationPage />} />
-            <Route path="admin" element={<AdminDashboardPage />} />
-            <Route path="admin/pedidos" element={<AdminOrdersPage />} />
-            <Route path="admin/calendario" element={<AdminCalendarPage />} />
-            <Route path="admin/addproduct" element={<AddProductScreen />} /> {/* Nueva ruta */}
+            <Route
+              path="admin"
+              element={
+                <ProtectedRoute staffOnly>
+                  <AdminDashboardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="admin/pedidos"
+              element={
+                <ProtectedRoute staffOnly>
+                  <AdminOrdersPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="admin/calendario"
+              element={
+                <ProtectedRoute staffOnly>
+                  <AdminCalendarPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="admin/addproduct"
+              element={
+                <ProtectedRoute staffOnly>
+                  <AddProductScreen />
+                </ProtectedRoute>
+              }
+            />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
           <Route path="/login" element={<Login />} />
