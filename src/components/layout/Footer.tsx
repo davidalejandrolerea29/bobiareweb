@@ -117,8 +117,11 @@ const Footer: React.FC = () => {
           </div>
         </div>
 
-        <div className="border-t border-neutral-700 mt-8 pt-8 text-center text-neutral-400">
+        <div className="border-t border-neutral-700 mt-8 pt-8 flex flex-col md:flex-row items-center justify-between gap-3 text-center text-neutral-400">
           <p>© {new Date().getFullYear()} BOBIARESA. Todos los derechos reservados.</p>
+          <Link to="/politica-privacidad" className="hover:text-white transition-colors">
+            Política de Privacidad
+          </Link>
         </div>
       </div>
     </footer>

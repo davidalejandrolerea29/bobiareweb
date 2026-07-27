@@ -13,6 +13,7 @@ import AdminCalendarPage from './pages/admin/AdminCalendarPage';
 import AddProductScreen from './pages/admin/AddProductScreen';
 import AdminLayout from './pages/admin/AdminLayout';
 import NotFoundPage from './pages/NotFoundPage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import PromoPopup from './components/marketing/PromoPopup';
 import Login from './pages/LoginPage';
 import LandingPage from './pages/LandingPage';
@@ -57,6 +58,7 @@ function App() {
             <Route path="checkout" element={<CheckoutPage />} />
             <Route path="register" element={<RegisterScreen />} />
             <Route path="confirmacion/:orderId" element={<OrderConfirmationPage />} />
+            <Route path="politica-privacidad" element={<PrivacyPolicyPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
           <Route
