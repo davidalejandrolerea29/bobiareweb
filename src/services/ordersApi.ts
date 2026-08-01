@@ -23,6 +23,13 @@ export const ordersApi = {
 
   payments: (id: number) => apiFetch<Payment[]>(`/orders/${id}/payments`),
 
+  // Mercado Pago (Checkout Pro): crea la preferencia y devuelve el link al
+  // que hay que redirigir al cliente para que pague el total del pedido.
+  checkoutMercadoPago: (id: number) =>
+    apiFetch<{ init_point: string; preference_id: string }>(`/orders/${id}/checkout-mercadopago`, {
+      method: 'POST',
+    }),
+
   // --- Staff (Administrador / Gerente General / Finanzas / Stock) ---
 
   addPayment: (orderId: number, type: 'payment' | 'refund', amount: number, method?: string) =>

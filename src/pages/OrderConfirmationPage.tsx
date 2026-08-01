@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { CheckCircle, Package, Truck, ArrowRight } from 'lucide-react';
+import { CheckCircle, Package, Truck, ArrowRight, CreditCard, Loader2 } from 'lucide-react';
 import { ordersApi } from '../services/ordersApi';
+import { ApiError } from '../services/apiClient';
 import { Order } from '../types';
 
 const statusLabels: Record<string, string> = {
@@ -15,6 +16,8 @@ const OrderConfirmationPage: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [payingWithMp, setPayingWithMp] = useState(false);
+  const [mpError, setMpError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!orderId) return;
@@ -24,6 +27,19 @@ const OrderConfirmationPage: React.FC = () => {
       .catch(() => setOrder(null))
       .finally(() => setLoading(false));
   }, [orderId]);
+
+  const handlePayWithMercadoPago = async () => {
+    if (!orderId) return;
+    setMpError(null);
+    setPayingWithMp(true);
+    try {
+      const { init_point: initPoint } = await ordersApi.checkoutMercadoPago(Number(orderId));
+      window.location.href = initPoint;
+    } catch (err) {
+      setMpError(err instanceof ApiError ? err.message : 'No se pudo iniciar el pago. Probá de nuevo.');
+      setPayingWithMp(false);
+    }
+  };
 
   return (
     <div className="py-16">
@@ -69,14 +85,36 @@ const OrderConfirmationPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="mb-8">
-                <h3 className="font-medium text-lg mb-4 text-neutral-800">Próximos pasos</h3>
-                <div className="space-y-3 text-sm text-neutral-600">
-                  <p>1. Nuestro equipo de Finanzas te va a contactar para coordinar el pago de la seña.</p>
-                  <p>2. Una vez acreditada, vas a poder cargar el tracking de tu envío por Correo Argentino desde tu cuenta.</p>
-                  <p>3. Te avisamos cuando la pieza llegue al taller y a medida que avance el trabajo.</p>
+              {order.status === 'pending_payment' ? (
+                <div className="mb-8 bg-primary-50 border border-primary-100 rounded-md p-6 text-center">
+                  <h3 className="font-medium text-lg mb-2 text-neutral-800">Falta pagar el total</h3>
+                  <p className="text-sm text-neutral-600 mb-4">
+                    Te redirigimos a Mercado Pago para completar el pago de forma segura.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handlePayWithMercadoPago}
+                    disabled={payingWithMp}
+                    className="inline-flex items-center px-6 py-3 bg-primary-500 text-white font-medium rounded-md hover:bg-primary-600 transition-colors disabled:opacity-60"
+                  >
+                    {payingWithMp ? (
+                      <Loader2 size={18} className="mr-2 animate-spin" />
+                    ) : (
+                      <CreditCard size={18} className="mr-2" />
+                    )}
+                    {payingWithMp ? 'Redirigiendo...' : 'Pagar con Mercado Pago'}
+                  </button>
+                  {mpError && <p className="text-sm text-error-500 mt-3">{mpError}</p>}
                 </div>
-              </div>
+              ) : (
+                <div className="mb-8">
+                  <h3 className="font-medium text-lg mb-4 text-neutral-800">Próximos pasos</h3>
+                  <div className="space-y-3 text-sm text-neutral-600">
+                    <p>1. Con el pago acreditado, ya podés cargar el tracking de tu envío por Correo Argentino desde tu cuenta.</p>
+                    <p>2. Te avisamos cuando la pieza llegue al taller y a medida que avance el trabajo.</p>
+                  </div>
+                </div>
+              )}
             </>
           )}
 
