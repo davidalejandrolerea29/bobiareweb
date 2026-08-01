@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { AlertCircle, PackageCheck, Search, SlidersHorizontal } from 'lucide-react';
+import { AlertCircle, Eye, PackageCheck, Search, SlidersHorizontal } from 'lucide-react';
 import { ordersApi } from '../../services/ordersApi';
 import { ApiError } from '../../services/apiClient';
 import { Order, OrderStatus } from '../../types';
+import OrderDetailModal from '../../components/admin/OrderDetailModal';
 
 const statusOptions: { value: OrderStatus; label: string }[] = [
   { value: 'pending_payment', label: 'Pendiente de pago' },
@@ -32,6 +33,7 @@ const AdminOrdersPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [actionError, setActionError] = useState<string | null>(null);
   const [receivingId, setReceivingId] = useState<number | null>(null);
+  const [viewingOrderId, setViewingOrderId] = useState<number | null>(null);
 
   const loadOrders = () => {
     setLoading(true);
@@ -154,20 +156,28 @@ const AdminOrdersPage: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-5 py-4 text-right text-sm font-bold text-neutral-900">{formatMoney(order.total)}</td>
-                    <td className="px-5 py-4 text-right">
-                      {canReceive ? (
+                    <td className="px-5 py-4">
+                      <div className="flex items-center justify-end gap-2">
                         <button
                           type="button"
-                          onClick={() => handleReceive(order.id)}
-                          disabled={receivingId === order.id}
-                          className="inline-flex h-9 items-center gap-2 rounded-md border border-neutral-300 bg-white px-3 text-xs font-semibold text-neutral-700 hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700 disabled:cursor-wait disabled:opacity-60"
+                          onClick={() => setViewingOrderId(order.id)}
+                          className="inline-flex h-9 items-center gap-2 rounded-md border border-neutral-300 bg-white px-3 text-xs font-semibold text-neutral-700 hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700"
                         >
-                          <PackageCheck size={16} />
-                          {receivingId === order.id ? 'Procesando' : 'Recibir'}
+                          <Eye size={16} />
+                          Ver detalle
                         </button>
-                      ) : (
-                        <span className="text-xs text-neutral-400">Sin acciones</span>
-                      )}
+                        {canReceive && (
+                          <button
+                            type="button"
+                            onClick={() => handleReceive(order.id)}
+                            disabled={receivingId === order.id}
+                            className="inline-flex h-9 items-center gap-2 rounded-md border border-neutral-300 bg-white px-3 text-xs font-semibold text-neutral-700 hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700 disabled:cursor-wait disabled:opacity-60"
+                          >
+                            <PackageCheck size={16} />
+                            {receivingId === order.id ? 'Procesando' : 'Recibir'}
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -188,6 +198,10 @@ const AdminOrdersPage: React.FC = () => {
           </table>
         </div>
       </section>
+
+      {viewingOrderId !== null && (
+        <OrderDetailModal orderId={viewingOrderId} onClose={() => setViewingOrderId(null)} />
+      )}
     </div>
   );
 };
