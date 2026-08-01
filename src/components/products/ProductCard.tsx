@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { ProductSummary } from '../../types';
+import ImageCarousel from './ImageCarousel';
 
 interface ProductCardProps {
   product: ProductSummary;
@@ -12,15 +13,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg">
-      <div className="aspect-video relative overflow-hidden bg-neutral-200">
-        {product.image_url && (
-          <img
-            src={product.image_url}
-            alt={product.name}
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
-        )}
+      <div className="relative">
+        <ImageCarousel images={product.images} alt={product.name} className="aspect-video w-full" />
         <div className="absolute top-3 right-3">
           <span className="inline-block px-2 py-1 text-xs font-medium bg-accent-500 text-white rounded">
             {product.categories[0] ?? 'General'}

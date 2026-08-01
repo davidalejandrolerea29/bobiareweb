@@ -8,6 +8,7 @@ import { ProductDetailResponse, DeliveryTime, AttributeType } from '../types';
 import AttributeSelector, { SelectedAttribute } from '../components/products/AttributeSelector';
 import DeliveryTimeSelector from '../components/products/DeliveryTimeSelector';
 import AiPurchaseGate from '../components/products/AiPurchaseGate';
+import ImageCarousel from '../components/products/ImageCarousel';
 import { isProductAiCleared } from '../utils/aiPurchaseGate';
 
 const ProductDetailPage: React.FC = () => {
@@ -130,15 +131,11 @@ const ProductDetailPage: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
-          <div className="rounded-lg overflow-hidden shadow-md bg-neutral-100 aspect-video">
-            {product.images[0] && (
-              <img
-                src={product.images[0].url}
-                alt={product.name}
-                className="w-full h-full object-cover"
-              />
-            )}
-          </div>
+          <ImageCarousel
+            images={product.images.map((img) => img.url)}
+            alt={product.name}
+            className="rounded-lg shadow-md aspect-video w-full"
+          />
 
           <div>
             {selectedCategories.length > 0 && (

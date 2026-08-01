@@ -4,14 +4,7 @@ import { AlertCircle, ArrowLeft, ImagePlus, LoaderCircle, PackagePlus, X } from 
 import { catalogApi } from '../../services/catalogApi';
 import { ApiError } from '../../services/apiClient';
 import { Category, DeliveryTime } from '../../types';
-
-const fileToBase64 = (file: File): Promise<string> =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
+import { resizeImageFile } from '../../utils/imageResize';
 
 const AddProductScreen: React.FC = () => {
   const navigate = useNavigate();
@@ -26,8 +19,8 @@ const AddProductScreen: React.FC = () => {
   const [offerPrice, setOfferPrice] = useState('');
   const [categoryIds, setCategoryIds] = useState<number[]>([]);
   const [deliveryTimeIds, setDeliveryTimeIds] = useState<number[]>([]);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const imagePreview = useMemo(() => imageFile ? URL.createObjectURL(imageFile) : null, [imageFile]);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const imagePreviews = useMemo(() => imageFiles.map((file) => URL.createObjectURL(file)), [imageFiles]);
 
   useEffect(() => {
     catalogApi
@@ -41,23 +34,37 @@ const AddProductScreen: React.FC = () => {
   }, []);
 
   useEffect(() => () => {
-    if (imagePreview) URL.revokeObjectURL(imagePreview);
-  }, [imagePreview]);
+    imagePreviews.forEach((url) => URL.revokeObjectURL(url));
+  }, [imagePreviews]);
 
   const toggleId = (list: number[], id: number) =>
     list.includes(id) ? list.filter((item) => item !== id) : [...list, id];
+
+  const handleAddFiles = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setImageFiles((current) => [...current, ...Array.from(files)]);
+  };
+
+  const handleRemoveFile = (index: number) => {
+    setImageFiles((current) => current.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
 
-    if (categoryIds.length === 0 || deliveryTimeIds.length === 0 || !imageFile) {
-      setError('Seleccioná una categoría, un tiempo de entrega y una imagen.');
+    if (categoryIds.length === 0 || deliveryTimeIds.length === 0 || imageFiles.length === 0) {
+      setError('Seleccioná una categoría, un tiempo de entrega y al menos una imagen.');
       return;
     }
 
     setSubmitting(true);
     try {
+      // Achica/comprime cada imagen en el navegador antes de mandarla — el
+      // backend guarda el archivo tal cual llega, sin procesar (ver
+      // src/utils/imageResize.ts).
+      const resizedImages = await Promise.all(imageFiles.map(resizeImageFile));
+
       await catalogApi.create({
         name,
         description: description || undefined,
@@ -65,7 +72,7 @@ const AddProductScreen: React.FC = () => {
         offer_price: offerPrice ? Number(offerPrice) : null,
         category_ids: categoryIds,
         delivery_time_ids: deliveryTimeIds,
-        images: [await fileToBase64(imageFile)],
+        images: resizedImages,
       });
       navigate('/admin');
     } catch (err) {
@@ -231,35 +238,53 @@ const AddProductScreen: React.FC = () => {
 
         <aside>
           <section className="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
-            <h3 className="font-semibold text-neutral-900">Imagen principal</h3>
-            <p className="mt-1 text-xs text-neutral-500">Usá una foto clara y horizontal del trabajo.</p>
-            {imagePreview ? (
-              <div className="relative mt-5 overflow-hidden rounded-md border border-neutral-200 bg-neutral-100">
-                <img src={imagePreview} alt="Vista previa del producto" className="aspect-[4/3] w-full object-cover" />
-                <button
-                  type="button"
-                  onClick={() => setImageFile(null)}
-                  className="absolute right-2 top-2 grid h-9 w-9 place-items-center rounded-md bg-white text-neutral-700 shadow hover:bg-red-50 hover:text-red-600"
-                  aria-label="Quitar imagen"
-                >
-                  <X size={18} />
-                </button>
+            <h3 className="font-semibold text-neutral-900">Imágenes</h3>
+            <p className="mt-1 text-xs text-neutral-500">
+              Subí una o más fotos claras del trabajo. La primera se usa como portada; se muestran como galería.
+            </p>
+
+            {imagePreviews.length > 0 && (
+              <div className="mt-5 grid grid-cols-2 gap-3">
+                {imagePreviews.map((preview, index) => (
+                  <div key={preview} className="relative overflow-hidden rounded-md border border-neutral-200 bg-neutral-100">
+                    <img src={preview} alt={`Vista previa ${index + 1}`} className="aspect-square w-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveFile(index)}
+                      className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-md bg-white text-neutral-700 shadow hover:bg-red-50 hover:text-red-600"
+                      aria-label={`Quitar imagen ${index + 1}`}
+                    >
+                      <X size={14} />
+                    </button>
+                    {index === 0 && (
+                      <span className="absolute left-1.5 top-1.5 rounded bg-primary-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                        Portada
+                      </span>
+                    )}
+                  </div>
+                ))}
               </div>
-            ) : (
-              <label className="mt-5 grid aspect-[4/3] cursor-pointer place-items-center rounded-md border-2 border-dashed border-neutral-300 bg-neutral-50 text-center hover:border-primary-400 hover:bg-primary-50">
-                <span>
-                  <ImagePlus size={28} className="mx-auto text-neutral-400" />
-                  <span className="mt-3 block text-sm font-semibold text-neutral-700">Seleccionar imagen</span>
-                  <span className="mt-1 block text-xs text-neutral-500">PNG, JPG o WEBP</span>
-                </span>
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  onChange={(event) => setImageFile(event.target.files?.[0] ?? null)}
-                  className="sr-only"
-                />
-              </label>
             )}
+
+            <label className="mt-4 grid aspect-[4/3] cursor-pointer place-items-center rounded-md border-2 border-dashed border-neutral-300 bg-neutral-50 text-center hover:border-primary-400 hover:bg-primary-50">
+              <span>
+                <ImagePlus size={28} className="mx-auto text-neutral-400" />
+                <span className="mt-3 block text-sm font-semibold text-neutral-700">
+                  {imagePreviews.length > 0 ? 'Agregar más imágenes' : 'Seleccionar imágenes'}
+                </span>
+                <span className="mt-1 block text-xs text-neutral-500">PNG, JPG o WEBP</span>
+              </span>
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                multiple
+                onChange={(event) => {
+                  handleAddFiles(event.target.files);
+                  event.target.value = '';
+                }}
+                className="sr-only"
+              />
+            </label>
           </section>
         </aside>
       </div>

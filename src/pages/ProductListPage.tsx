@@ -21,6 +21,15 @@ const ProductListPage: React.FC = () => {
       .catch((error) => console.error('Error al cargar productos:', error));
   }, []);
 
+  // categoryParam solo se leía en el useState inicial — si el usuario ya
+  // está en /productos y hace click en otro link de categoría (Header/
+  // Footer), React Router no remonta el componente, así que sin esto el
+  // filtro quedaba pegado en la categoría con la que se entró la primera vez.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sincroniza con la URL, sin loop
+    setActiveCategory(categoryParam);
+  }, [categoryParam]);
+
   const filteredProducts = useMemo(() => {
     let result = [...products];
 

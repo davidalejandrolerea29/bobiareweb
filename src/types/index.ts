@@ -61,7 +61,7 @@ export interface ProductSummary {
   price: string;
   offer_price: string | null;
   categories: string[];
-  image_url: string | null;
+  images: string[];
 }
 
 // Forma que devuelve GET /products/product/{id}
