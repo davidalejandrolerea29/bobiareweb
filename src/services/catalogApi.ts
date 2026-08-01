@@ -1,6 +1,17 @@
 import { apiFetch } from './apiClient';
 import { CatalogData, ProductDetailResponse, ProductSummary } from '../types';
 
+// Un atributo a asociar a un producto al crear/editar. Si attribute_id está
+// presente, el backend reutiliza ese atributo existente (ej. un color ya
+// cargado en la paleta); si no, lo crea nuevo con description/hex_value.
+export interface ProductAttributePayload {
+  attribute_type_id: number;
+  attribute_id?: number;
+  description: string;
+  value?: string | null;
+  hex_value?: string | null;
+}
+
 export interface ProductPayload {
   name: string;
   description?: string;
@@ -9,7 +20,7 @@ export interface ProductPayload {
   category_ids: number[];
   delivery_time_ids: number[];
   images: string[]; // data:image/...;base64,....
-  attributes?: unknown[];
+  attributes?: ProductAttributePayload[];
 }
 
 export interface ProductUpdatePayload {
@@ -20,6 +31,7 @@ export interface ProductUpdatePayload {
     price: number;
     offer_price?: number | null;
     images?: { file: string }[];
+    attributes?: ProductAttributePayload[];
   };
   categories: { id: number; selected: boolean }[];
   delivery_times: { id: number; selected: boolean }[];

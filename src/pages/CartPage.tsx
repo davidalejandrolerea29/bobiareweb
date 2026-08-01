@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Trash2, ShoppingBag, ChevronRight, Truck } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import SelectedAttributesSummary from '../components/products/SelectedAttributesSummary';
 
 const CartPage: React.FC = () => {
   const { cart, loading, removeItem, updateItem, totalPrice } = useCart();
@@ -65,6 +66,7 @@ const CartPage: React.FC = () => {
                       </div>
 
                       <div className="mb-4">
+                        <SelectedAttributesSummary attributes={item.selected_attributes} />
                         {item.piece_description && (
                           <p className="text-sm text-neutral-600 mb-1">
                             <span className="font-medium">Pieza:</span> {item.piece_description}

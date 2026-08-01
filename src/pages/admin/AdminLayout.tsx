@@ -17,14 +17,14 @@ const navigation = [
   { label: 'Resumen', to: '/admin', icon: LayoutDashboard, end: true },
   { label: 'Pedidos', to: '/admin/pedidos', icon: ShoppingBag },
   { label: 'Calendario', to: '/admin/calendario', icon: CalendarDays },
-  { label: 'Nuevo producto', to: '/admin/addproduct', icon: PackagePlus },
+  { label: 'Nuevo servicio', to: '/admin/addproduct', icon: PackagePlus },
 ];
 
 const pageTitles: Record<string, { title: string; eyebrow: string }> = {
   '/admin': { title: 'Resumen general', eyebrow: 'Panel de control' },
   '/admin/pedidos': { title: 'Gestión de pedidos', eyebrow: 'Operaciones' },
   '/admin/calendario': { title: 'Calendario', eyebrow: 'Planificación' },
-  '/admin/addproduct': { title: 'Nuevo producto', eyebrow: 'Catálogo' },
+  '/admin/addproduct': { title: 'Nuevo servicio', eyebrow: 'Catálogo' },
 };
 
 const AdminLayout: React.FC = () => {

@@ -12,6 +12,7 @@ import {
 import { ordersApi } from '../services/ordersApi';
 import { ApiError } from '../services/apiClient';
 import { Order, Shipment } from '../types';
+import SelectedAttributesSummary from '../components/products/SelectedAttributesSummary';
 
 const statusLabels: Record<string, string> = {
   pending_payment: 'Esperando confirmación del pago',
@@ -128,6 +129,36 @@ const OrderConfirmationPage: React.FC = () => {
                     </h3>
                     <p className="text-neutral-600">${Number(order.total).toLocaleString()}</p>
                   </div>
+                </div>
+              </div>
+
+              <div className="border-b border-neutral-200 pb-6 mb-6">
+                <h3 className="font-medium text-lg mb-3 text-neutral-800">Detalle del pedido</h3>
+                <div className="space-y-4">
+                  {order.items.map((item) => (
+                    <div key={item.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1">
+                      <div>
+                        <p className="font-medium text-neutral-800">
+                          {item.quantity}x {item.product_name_snapshot}
+                        </p>
+                        <SelectedAttributesSummary attributes={item.selected_attributes} />
+                        {item.piece_description && (
+                          <p className="text-sm text-neutral-600">
+                            <span className="font-medium">Pieza:</span> {item.piece_description}
+                          </p>
+                        )}
+                        {item.delivery_time_snapshot && (
+                          <p className="text-sm text-neutral-600">
+                            <span className="font-medium">Entrega:</span>{' '}
+                            {item.delivery_time_snapshot.description}
+                          </p>
+                        )}
+                      </div>
+                      <span className="font-medium text-primary-600 shrink-0">
+                        ${Number(item.subtotal).toLocaleString()}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
 

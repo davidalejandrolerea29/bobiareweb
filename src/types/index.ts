@@ -37,8 +37,21 @@ export interface AttributeSub {
 export interface Attribute {
   id: number;
   description: string;
+  hex_value?: string | null; // solo para atributos del tipo "color_picker"
   selected?: boolean;
   subs?: AttributeSub[];
+}
+
+// Snapshot de un atributo elegido por el cliente — es lo que viaja en
+// selected_attributes de un item de carrito/pedido. hex_value se copia acá
+// para no depender de que el atributo siga existiendo/sin cambios después.
+export interface SelectedAttributeSnapshot {
+  attribute_type_id: number;
+  attribute_id: number;
+  description: string;
+  hex_value?: string | null;
+  sub_id?: number;
+  sub_description?: string;
 }
 
 export interface AttributeType {
@@ -76,6 +89,7 @@ export interface ProductDetail {
     attribute_type_id: number;
     attribute_id: number;
     description: string;
+    hex_value: string | null;
     value: string | null;
     subs: AttributeSub[];
   }[];
@@ -116,7 +130,7 @@ export interface OrderItem {
     business_days: number | null;
     extra_cost: string | number;
   } | null;
-  selected_attributes: unknown[];
+  selected_attributes: SelectedAttributeSnapshot[];
   quantity: number;
   subtotal: string;
 }

@@ -1,11 +1,11 @@
 import { apiFetch } from './apiClient';
-import { AuthSession, Order, OrderItem, ShippingAddress } from '../types';
+import { AuthSession, Order, OrderItem, SelectedAttributeSnapshot, ShippingAddress } from '../types';
 
 export interface AddCartItemPayload {
   product_id: number;
   delivery_time_id: number;
   piece_description?: string;
-  selected_attributes?: unknown[];
+  selected_attributes?: SelectedAttributeSnapshot[];
   quantity?: number;
 }
 

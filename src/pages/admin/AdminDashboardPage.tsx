@@ -96,7 +96,7 @@ const AdminDashboardPage: React.FC = () => {
           className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-primary-700"
         >
           <PackagePlus size={18} />
-          Nuevo producto
+          Nuevo servicio
         </Link>
       </section>
 
@@ -213,7 +213,7 @@ const AdminDashboardPage: React.FC = () => {
                 <CircleDollarSign size={19} />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold text-neutral-800">Agregar producto</span>
+                <span className="block text-sm font-semibold text-neutral-800">Agregar servicio</span>
                 <span className="block text-xs text-neutral-500">Publicar un nuevo servicio</span>
               </span>
               <ArrowRight size={17} className="text-neutral-300 group-hover:text-primary-600" />

@@ -1,15 +1,18 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle, ArrowLeft, ImagePlus, LoaderCircle, PackagePlus, X } from 'lucide-react';
-import { catalogApi } from '../../services/catalogApi';
+import { AlertCircle, ArrowLeft, ImagePlus, LoaderCircle, PackagePlus, Plus, X } from 'lucide-react';
+import { catalogApi, ProductAttributePayload } from '../../services/catalogApi';
 import { ApiError } from '../../services/apiClient';
-import { Category, DeliveryTime } from '../../types';
+import { Attribute, AttributeType, Category, DeliveryTime } from '../../types';
 import { resizeImageFile } from '../../utils/imageResize';
+
+const DEFAULT_NEW_COLOR_HEX = '#DC2626';
 
 const AddProductScreen: React.FC = () => {
   const navigate = useNavigate();
   const [categories, setCategories] = useState<Category[]>([]);
   const [deliveryTimes, setDeliveryTimes] = useState<DeliveryTime[]>([]);
+  const [attributeTypes, setAttributeTypes] = useState<AttributeType[]>([]);
   const [loadingCatalog, setLoadingCatalog] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,12 +25,23 @@ const AddProductScreen: React.FC = () => {
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const imagePreviews = useMemo(() => imageFiles.map((file) => URL.createObjectURL(file)), [imageFiles]);
 
+  // Colores: se pueden elegir de la paleta existente (attribute_id ya
+  // creado) o agregar uno nuevo (se crea en el backend al reutilizarse el
+  // mismo flujo de "attributes" que ya soporta otros tipos de atributo).
+  const [selectedColorIds, setSelectedColorIds] = useState<number[]>([]);
+  const [customColors, setCustomColors] = useState<{ description: string; hex_value: string }[]>([]);
+  const [newColorName, setNewColorName] = useState('');
+  const [newColorHex, setNewColorHex] = useState(DEFAULT_NEW_COLOR_HEX);
+
+  const colorType = attributeTypes.find((type) => type.key === 'color_picker');
+
   useEffect(() => {
     catalogApi
       .catalogData()
       .then((data) => {
         setCategories(data.categories);
         setDeliveryTimes(data.delivery_times);
+        setAttributeTypes(data.attribute_types);
       })
       .catch(() => setError('No se pudieron cargar las categorías y tiempos de entrega.'))
       .finally(() => setLoadingCatalog(false));
@@ -49,6 +63,21 @@ const AddProductScreen: React.FC = () => {
     setImageFiles((current) => current.filter((_, i) => i !== index));
   };
 
+  const toggleColorId = (id: number) =>
+    setSelectedColorIds((current) => toggleId(current, id));
+
+  const handleAddCustomColor = () => {
+    const trimmedName = newColorName.trim();
+    if (!trimmedName) return;
+    setCustomColors((current) => [...current, { description: trimmedName, hex_value: newColorHex }]);
+    setNewColorName('');
+    setNewColorHex(DEFAULT_NEW_COLOR_HEX);
+  };
+
+  const handleRemoveCustomColor = (index: number) => {
+    setCustomColors((current) => current.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
@@ -65,6 +94,27 @@ const AddProductScreen: React.FC = () => {
       // src/utils/imageResize.ts).
       const resizedImages = await Promise.all(imageFiles.map(resizeImageFile));
 
+      const attributes: ProductAttributePayload[] = [];
+      if (colorType) {
+        for (const colorId of selectedColorIds) {
+          const attribute = colorType.attributes.find((a) => a.id === colorId);
+          if (!attribute) continue;
+          attributes.push({
+            attribute_type_id: colorType.id,
+            attribute_id: attribute.id,
+            description: attribute.description,
+            hex_value: attribute.hex_value,
+          });
+        }
+        for (const custom of customColors) {
+          attributes.push({
+            attribute_type_id: colorType.id,
+            description: custom.description,
+            hex_value: custom.hex_value,
+          });
+        }
+      }
+
       await catalogApi.create({
         name,
         description: description || undefined,
@@ -73,10 +123,11 @@ const AddProductScreen: React.FC = () => {
         category_ids: categoryIds,
         delivery_time_ids: deliveryTimeIds,
         images: resizedImages,
+        attributes: attributes.length > 0 ? attributes : undefined,
       });
       navigate('/admin');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'No se pudo agregar el producto.');
+      setError(err instanceof ApiError ? err.message : 'No se pudo agregar el servicio.');
     } finally {
       setSubmitting(false);
     }
@@ -104,7 +155,7 @@ const AddProductScreen: React.FC = () => {
           >
             <ArrowLeft size={16} /> Volver al resumen
           </button>
-          <h2 className="text-2xl font-bold text-neutral-900">Publicar producto</h2>
+          <h2 className="text-2xl font-bold text-neutral-900">Publicar servicio</h2>
           <p className="mt-1 text-sm text-neutral-500">Completá la información que verá el cliente en la tienda.</p>
         </div>
         <div className="flex gap-3">
@@ -142,7 +193,7 @@ const AddProductScreen: React.FC = () => {
             </div>
             <div className="space-y-5">
               <label className="block">
-                <span className="mb-2 block text-sm font-semibold text-neutral-700">Nombre del producto</span>
+                <span className="mb-2 block text-sm font-semibold text-neutral-700">Nombre del servicio</span>
                 <input
                   type="text"
                   value={name}
@@ -200,7 +251,7 @@ const AddProductScreen: React.FC = () => {
 
           <section className="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm sm:p-6">
             <h3 className="font-semibold text-neutral-900">Disponibilidad</h3>
-            <p className="mt-1 text-xs text-neutral-500">Definí cómo se organiza el producto en el catálogo.</p>
+            <p className="mt-1 text-xs text-neutral-500">Definí cómo se organiza el servicio en el catálogo.</p>
             <fieldset className="mt-5">
               <legend className="text-sm font-semibold text-neutral-700">Categorías</legend>
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -234,6 +285,73 @@ const AddProductScreen: React.FC = () => {
               </div>
             </fieldset>
           </section>
+
+          {colorType && (
+            <section className="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm sm:p-6">
+              <h3 className="font-semibold text-neutral-900">Colores</h3>
+              <p className="mt-1 text-xs text-neutral-500">
+                Opcional. El cliente va a poder elegir uno de estos colores en la página del servicio.
+              </p>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                {colorType.attributes.map((attribute) => (
+                  <ColorSwatchButton
+                    key={attribute.id}
+                    attribute={attribute}
+                    selected={selectedColorIds.includes(attribute.id)}
+                    onClick={() => toggleColorId(attribute.id)}
+                  />
+                ))}
+                {customColors.map((color, index) => (
+                  <div key={`${color.description}-${index}`} className="relative">
+                    <span
+                      title={color.description}
+                      style={{ backgroundColor: color.hex_value }}
+                      className="grid h-9 w-9 place-items-center rounded-full border-2 border-primary-600 shadow-md"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveCustomColor(index)}
+                      aria-label={`Quitar color ${color.description}`}
+                      className="absolute -right-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full bg-white text-neutral-600 shadow hover:bg-red-50 hover:text-red-600"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 flex flex-wrap items-end gap-3">
+                <label className="block">
+                  <span className="mb-1 block text-xs font-semibold text-neutral-600">Nuevo color</span>
+                  <input
+                    type="text"
+                    value={newColorName}
+                    onChange={(event) => setNewColorName(event.target.value)}
+                    placeholder="Ej. Dorado"
+                    className="h-10 w-40 rounded-md border border-neutral-300 px-3 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                  />
+                </label>
+                <label className="block">
+                  <span className="mb-1 block text-xs font-semibold text-neutral-600">Color</span>
+                  <input
+                    type="color"
+                    value={newColorHex}
+                    onChange={(event) => setNewColorHex(event.target.value)}
+                    className="h-10 w-14 cursor-pointer rounded-md border border-neutral-300"
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={handleAddCustomColor}
+                  disabled={!newColorName.trim()}
+                  className="inline-flex h-10 items-center gap-1 rounded-md border border-neutral-300 px-3 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Plus size={16} /> Agregar
+                </button>
+              </div>
+            </section>
+          )}
         </div>
 
         <aside>
@@ -291,5 +409,25 @@ const AddProductScreen: React.FC = () => {
     </form>
   );
 };
+
+interface ColorSwatchButtonProps {
+  attribute: Attribute;
+  selected: boolean;
+  onClick: () => void;
+}
+
+const ColorSwatchButton: React.FC<ColorSwatchButtonProps> = ({ attribute, selected, onClick }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    title={attribute.description}
+    aria-label={attribute.description}
+    aria-pressed={selected}
+    style={{ backgroundColor: attribute.hex_value ?? undefined }}
+    className={`grid h-9 w-9 place-items-center rounded-full border-2 transition-shadow ${
+      selected ? 'border-primary-600 shadow-md ring-2 ring-primary-200' : 'border-neutral-300'
+    } ${!attribute.hex_value ? 'bg-neutral-200' : ''}`}
+  />
+);
 
 export default AddProductScreen;

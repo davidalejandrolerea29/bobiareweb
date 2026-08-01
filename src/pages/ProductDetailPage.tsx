@@ -4,8 +4,8 @@ import { ArrowLeft } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { catalogApi } from '../services/catalogApi';
 import { ApiError } from '../services/apiClient';
-import { ProductDetailResponse, DeliveryTime, AttributeType } from '../types';
-import AttributeSelector, { SelectedAttribute } from '../components/products/AttributeSelector';
+import { ProductDetailResponse, DeliveryTime, AttributeType, SelectedAttributeSnapshot } from '../types';
+import AttributeSelector from '../components/products/AttributeSelector';
 import DeliveryTimeSelector from '../components/products/DeliveryTimeSelector';
 import AiPurchaseGate from '../components/products/AiPurchaseGate';
 import ImageCarousel from '../components/products/ImageCarousel';
@@ -25,7 +25,7 @@ const ProductDetailPage: React.FC = () => {
   const [quantity, setQuantity] = useState(1);
   const [pieceDescription, setPieceDescription] = useState('');
   const [selectedDelivery, setSelectedDelivery] = useState<DeliveryTime | undefined>(undefined);
-  const [selectedAttributes, setSelectedAttributes] = useState<Record<number, SelectedAttribute>>({});
+  const [selectedAttributes, setSelectedAttributes] = useState<Record<number, SelectedAttributeSnapshot>>({});
   const [aiCleared, setAiCleared] = useState(false);
 
   useEffect(() => {
