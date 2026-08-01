@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { aiApi } from '../../services/aiApi';
 import { ApiError } from '../../services/apiClient';
 import { PieceAnalysis } from '../../types';
+import { markProductAiCleared } from '../../utils/aiPurchaseGate';
 
 const MAX_BYTES = 8 * 1024 * 1024;
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -53,6 +54,9 @@ const PieceAnalyzer: React.FC = () => {
     try {
       const { analysis } = await aiApi.analyzePiece(file);
       setResult(analysis);
+      if (analysis.suggested_product_id) {
+        markProductAiCleared(analysis.suggested_product_id);
+      }
     } catch (err) {
       setError(errorMessageFor(err));
     } finally {

@@ -7,6 +7,8 @@ import { ApiError } from '../services/apiClient';
 import { ProductDetailResponse, DeliveryTime, AttributeType } from '../types';
 import AttributeSelector, { SelectedAttribute } from '../components/products/AttributeSelector';
 import DeliveryTimeSelector from '../components/products/DeliveryTimeSelector';
+import AiPurchaseGate from '../components/products/AiPurchaseGate';
+import { isProductAiCleared } from '../utils/aiPurchaseGate';
 
 const ProductDetailPage: React.FC = () => {
   const { productId } = useParams<{ productId: string }>();
@@ -23,6 +25,7 @@ const ProductDetailPage: React.FC = () => {
   const [pieceDescription, setPieceDescription] = useState('');
   const [selectedDelivery, setSelectedDelivery] = useState<DeliveryTime | undefined>(undefined);
   const [selectedAttributes, setSelectedAttributes] = useState<Record<number, SelectedAttribute>>({});
+  const [aiCleared, setAiCleared] = useState(false);
 
   useEffect(() => {
     if (!productId) return;
@@ -35,6 +38,7 @@ const ProductDetailPage: React.FC = () => {
         setData(response);
         const availableDeliveryTimes = response.delivery_times.filter((d) => d.selected);
         setSelectedDelivery(availableDeliveryTimes[0]);
+        setAiCleared(isProductAiCleared(response.product.id));
       })
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
@@ -57,6 +61,10 @@ const ProductDetailPage: React.FC = () => {
   const unitPrice = data ? Number(data.product.offer_price ?? data.product.price) : 0;
   const extraCost = selectedDelivery ? Number(selectedDelivery.extra_cost) : 0;
   const totalPrice = (unitPrice + extraCost) * quantity;
+
+  let addToCartLabel = 'Agregar al carrito';
+  if (submitting) addToCartLabel = 'Agregando...';
+  else if (!aiCleared) addToCartLabel = 'Confirmá tu pieza para continuar';
 
   const handleAddToCart = async () => {
     if (!data || !selectedDelivery) return;
@@ -218,6 +226,14 @@ const ProductDetailPage: React.FC = () => {
               </div>
             </div>
 
+            {!aiCleared && (
+              <AiPurchaseGate
+                productId={product.id}
+                productName={product.name}
+                onCleared={() => setAiCleared(true)}
+              />
+            )}
+
             <div className="bg-neutral-50 rounded-lg p-4 mb-6">
               <div className="flex items-center justify-between mb-4">
                 <span className="font-medium">Precio Total:</span>
@@ -228,10 +244,11 @@ const ProductDetailPage: React.FC = () => {
               {error && <p className="text-sm text-error-500 mb-4">{error}</p>}
               <button
                 onClick={handleAddToCart}
-                disabled={submitting || !selectedDelivery}
+                disabled={submitting || !selectedDelivery || !aiCleared}
+                title={!aiCleared ? 'Subí una foto de tu pieza para poder agregar al carrito' : undefined}
                 className="w-full py-3 bg-primary-500 text-white font-medium rounded-md hover:bg-primary-600 transition-colors disabled:opacity-60"
               >
-                {submitting ? 'Agregando...' : 'Agregar al carrito'}
+                {addToCartLabel}
               </button>
             </div>
           </div>
