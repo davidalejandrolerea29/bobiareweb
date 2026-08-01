@@ -58,8 +58,8 @@ const ProductDetailPage: React.FC = () => {
     if (newQuantity > 0) setQuantity(newQuantity);
   };
 
-  const unitPrice = data ? Number(data.product.offer_price ?? data.product.price) : 0;
-  const extraCost = selectedDelivery ? Number(selectedDelivery.extra_cost) : 0;
+  const unitPrice = data ? Number(data.product.offer_price ?? data.product.price) || 0 : 0;
+  const extraCost = selectedDelivery ? Number(selectedDelivery.extra_cost) || 0 : 0;
   const totalPrice = (unitPrice + extraCost) * quantity;
 
   let addToCartLabel = 'Agregar al carrito';
