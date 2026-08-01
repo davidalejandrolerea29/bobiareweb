@@ -1,29 +1,54 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { CheckCircle, Package, Truck, ArrowRight, CreditCard, Loader2 } from 'lucide-react';
+import {
+  CheckCircle,
+  Package,
+  Truck,
+  ArrowRight,
+  CreditCard,
+  Loader2,
+  ExternalLink,
+} from 'lucide-react';
 import { ordersApi } from '../services/ordersApi';
 import { ApiError } from '../services/apiClient';
-import { Order } from '../types';
+import { Order, Shipment } from '../types';
 
 const statusLabels: Record<string, string> = {
   pending_payment: 'Esperando confirmación del pago',
-  paid: 'Pago acreditado — podés despachar la pieza',
+  paid: 'Pago acreditado — falta cargar el envío',
   shipped_by_customer: 'Pieza en camino al taller',
   received: 'Pieza recibida en el taller',
 };
 
+const CORREO_ARGENTINO_TRACKING_URL = 'https://www.correoargentino.com.ar/seguimiento-de-envios';
+
 const OrderConfirmationPage: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const [order, setOrder] = useState<Order | null>(null);
+  const [shipment, setShipment] = useState<Shipment | null>(null);
   const [loading, setLoading] = useState(true);
   const [payingWithMp, setPayingWithMp] = useState(false);
   const [mpError, setMpError] = useState<string | null>(null);
 
+  const [trackingModalOpen, setTrackingModalOpen] = useState(false);
+  const [trackingNumber, setTrackingNumber] = useState('');
+  const [trackingError, setTrackingError] = useState<string | null>(null);
+  const [submittingTracking, setSubmittingTracking] = useState(false);
+
   useEffect(() => {
     if (!orderId) return;
-    ordersApi
-      .show(Number(orderId))
-      .then(setOrder)
+    Promise.all([ordersApi.show(Number(orderId)), ordersApi.shipments(Number(orderId))])
+      .then(([orderData, shipments]) => {
+        setOrder(orderData);
+        const toWorkshop = shipments.find((s) => s.direction === 'to_workshop') ?? null;
+        setShipment(toWorkshop);
+        // El envío es obligatorio para avanzar: si ya está pagado y todavía
+        // no cargó el tracking, se lo pedimos apenas entra a la página, no
+        // como una tarjeta más que puede pasar de largo.
+        if (orderData.status === 'paid' && !toWorkshop) {
+          setTrackingModalOpen(true);
+        }
+      })
       .catch(() => setOrder(null))
       .finally(() => setLoading(false));
   }, [orderId]);
@@ -38,6 +63,27 @@ const OrderConfirmationPage: React.FC = () => {
     } catch (err) {
       setMpError(err instanceof ApiError ? err.message : 'No se pudo iniciar el pago. Probá de nuevo.');
       setPayingWithMp(false);
+    }
+  };
+
+  const handleSubmitTracking = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!orderId) return;
+    if (!trackingNumber.trim()) {
+      setTrackingError('Ingresá el número de seguimiento que te dio Correo Argentino.');
+      return;
+    }
+    setTrackingError(null);
+    setSubmittingTracking(true);
+    try {
+      const newShipment = await ordersApi.addShipment(Number(orderId), trackingNumber.trim());
+      setShipment(newShipment);
+      setOrder((prev) => (prev ? { ...prev, status: 'shipped_by_customer' } : prev));
+      setTrackingModalOpen(false);
+    } catch (err) {
+      setTrackingError(err instanceof ApiError ? err.message : 'No se pudo guardar el seguimiento. Probá de nuevo.');
+    } finally {
+      setSubmittingTracking(false);
     }
   };
 
@@ -85,7 +131,7 @@ const OrderConfirmationPage: React.FC = () => {
                 </div>
               </div>
 
-              {order.status === 'pending_payment' ? (
+              {order.status === 'pending_payment' && (
                 <div className="mb-8 bg-primary-50 border border-primary-100 rounded-md p-6 text-center">
                   <h3 className="font-medium text-lg mb-2 text-neutral-800">Falta pagar el total</h3>
                   <p className="text-sm text-neutral-600 mb-4">
@@ -106,12 +152,49 @@ const OrderConfirmationPage: React.FC = () => {
                   </button>
                   {mpError && <p className="text-sm text-error-500 mt-3">{mpError}</p>}
                 </div>
-              ) : (
+              )}
+
+              {order.status === 'paid' && !shipment && (
+                <div className="mb-8 bg-amber-50 border border-amber-200 rounded-md p-6 text-center">
+                  <h3 className="font-medium text-lg mb-2 text-neutral-800">Falta cargar el envío</h3>
+                  <p className="text-sm text-neutral-600 mb-4">
+                    Despachá tu pieza por Correo Argentino y cargá acá el número de seguimiento.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setTrackingModalOpen(true)}
+                    className="inline-flex items-center px-6 py-3 bg-amber-500 text-white font-medium rounded-md hover:bg-amber-600 transition-colors"
+                  >
+                    Cargar número de seguimiento
+                  </button>
+                </div>
+              )}
+
+              {shipment && (
+                <div className="mb-8 bg-neutral-50 border border-neutral-200 rounded-md p-6">
+                  <h3 className="font-medium text-lg mb-2 text-neutral-800">Envío a taller</h3>
+                  <p className="text-sm text-neutral-600 mb-1">
+                    Número de seguimiento: <span className="font-mono font-medium">{shipment.tracking_number}</span>
+                  </p>
+                  <a
+                    href={CORREO_ARGENTINO_TRACKING_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center text-sm text-primary-600 hover:text-primary-700 font-medium mt-2"
+                  >
+                    Ver estado en Correo Argentino <ExternalLink size={14} className="ml-1" />
+                  </a>
+                  <p className="text-xs text-neutral-400 mt-2">
+                    Te lleva a la página de Correo Argentino — pegá ahí tu número de seguimiento.
+                  </p>
+                </div>
+              )}
+
+              {(order.status === 'shipped_by_customer' || order.status === 'received') && (
                 <div className="mb-8">
                   <h3 className="font-medium text-lg mb-4 text-neutral-800">Próximos pasos</h3>
                   <div className="space-y-3 text-sm text-neutral-600">
-                    <p>1. Con el pago acreditado, ya podés cargar el tracking de tu envío por Correo Argentino desde tu cuenta.</p>
-                    <p>2. Te avisamos cuando la pieza llegue al taller y a medida que avance el trabajo.</p>
+                    <p>Te avisamos por mail cuando la pieza llegue al taller y a medida que avance el trabajo.</p>
                   </div>
                 </div>
               )}
@@ -171,6 +254,44 @@ const OrderConfirmationPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {trackingModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h2 className="font-heading text-xl font-bold text-neutral-800 mb-2">
+              Cargá el seguimiento de tu envío
+            </h2>
+            <p className="text-sm text-neutral-600 mb-4">
+              Despachá tu pieza por Correo Argentino y pegá acá el número de seguimiento que te
+              dieron — lo necesitamos para saber que ya la enviaste.
+            </p>
+            <form onSubmit={handleSubmitTracking}>
+              <label htmlFor="tracking_number" className="block text-sm font-medium text-neutral-700 mb-1">
+                Número de seguimiento *
+              </label>
+              <input
+                id="tracking_number"
+                type="text"
+                required
+                value={trackingNumber}
+                onChange={(e) => setTrackingNumber(e.target.value)}
+                placeholder="Ej: CA123456789AR"
+                className="w-full p-3 border border-neutral-300 rounded-md focus:ring-primary-500 focus:border-primary-500 mb-2"
+                autoFocus
+              />
+              {trackingError && <p className="text-sm text-error-500 mb-2">{trackingError}</p>}
+              <button
+                type="submit"
+                disabled={submittingTracking}
+                className="w-full inline-flex items-center justify-center px-6 py-3 bg-primary-500 text-white font-medium rounded-md hover:bg-primary-600 transition-colors disabled:opacity-60 mt-2"
+              >
+                {submittingTracking && <Loader2 size={18} className="mr-2 animate-spin" />}
+                {submittingTracking ? 'Guardando...' : 'Confirmar envío'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
