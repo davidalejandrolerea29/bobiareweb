@@ -5,8 +5,8 @@ import { ordersApi } from '../services/ordersApi';
 import { Order } from '../types';
 
 const statusLabels: Record<string, string> = {
-  pending_payment: 'Esperando confirmación de la seña',
-  deposit_paid: 'Seña acreditada — podés despachar la pieza',
+  pending_payment: 'Esperando confirmación del pago',
+  paid: 'Pago acreditado — podés despachar la pieza',
   shipped_by_customer: 'Pieza en camino al taller',
   received: 'Pieza recibida en el taller',
 };

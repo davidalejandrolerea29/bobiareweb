@@ -321,7 +321,7 @@ const CheckoutPage: React.FC = () => {
                     <p>
                       Todavía no tenemos pasarela de pago online conectada. Al confirmar, generamos tu
                       pedido y nuestro equipo te va a contactar por email/teléfono para coordinar el
-                      pago de la seña antes de que envíes la pieza.
+                      pago del total antes de que envíes la pieza.
                     </p>
                   </div>
 
@@ -377,7 +377,7 @@ const CheckoutPage: React.FC = () => {
               </div>
 
               <p className="text-sm text-neutral-500">
-                Este total no incluye el envío de vuelta — se coordina y confirma junto al pago de la seña.
+                Este total no incluye el envío de vuelta — se coordina y confirma junto al pago del total.
               </p>
             </div>
           </div>

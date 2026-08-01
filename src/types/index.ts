@@ -123,7 +123,7 @@ export interface OrderItem {
 export type OrderStatus =
   | 'cart'
   | 'pending_payment'
-  | 'deposit_paid'
+  | 'paid'
   | 'shipped_by_customer'
   | 'received';
 
@@ -142,7 +142,7 @@ export interface Shipment {
 export interface Payment {
   id: number;
   order_id: number;
-  type: 'deposit' | 'balance' | 'refund';
+  type: 'payment' | 'refund';
   provider: string;
   status: string;
   amount: string;

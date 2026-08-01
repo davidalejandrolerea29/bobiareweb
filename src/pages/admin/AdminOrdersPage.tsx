@@ -6,14 +6,14 @@ import { Order, OrderStatus } from '../../types';
 
 const statusOptions: { value: OrderStatus; label: string }[] = [
   { value: 'pending_payment', label: 'Pendiente de pago' },
-  { value: 'deposit_paid', label: 'Seña pagada' },
+  { value: 'paid', label: 'Pagado' },
   { value: 'shipped_by_customer', label: 'En camino al taller' },
   { value: 'received', label: 'Recibido' },
 ];
 
 const statusClasses: Record<string, string> = {
   pending_payment: 'bg-neutral-100 text-neutral-700',
-  deposit_paid: 'bg-amber-100 text-amber-800',
+  paid: 'bg-amber-100 text-amber-800',
   shipped_by_customer: 'bg-blue-100 text-blue-800',
   received: 'bg-emerald-100 text-emerald-800',
 };
@@ -137,7 +137,7 @@ const AdminOrdersPage: React.FC = () => {
             <tbody className="divide-y divide-neutral-100">
               {!loading && filteredOrders.map((order) => {
                 const label = statusOptions.find((status) => status.value === order.status)?.label ?? order.status;
-                const canReceive = order.status === 'deposit_paid' || order.status === 'shipped_by_customer';
+                const canReceive = order.status === 'paid' || order.status === 'shipped_by_customer';
                 return (
                   <tr key={order.id} className="hover:bg-neutral-50">
                     <td className="px-5 py-4 text-sm font-bold text-neutral-900">#{order.id}</td>

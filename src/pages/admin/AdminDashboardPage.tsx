@@ -15,7 +15,7 @@ import { Order } from '../../types';
 
 const statusMeta: Record<string, { label: string; className: string }> = {
   pending_payment: { label: 'Pendiente de pago', className: 'bg-neutral-100 text-neutral-700' },
-  deposit_paid: { label: 'Seña pagada', className: 'bg-amber-100 text-amber-800' },
+  paid: { label: 'Pagado', className: 'bg-amber-100 text-amber-800' },
   shipped_by_customer: { label: 'En camino', className: 'bg-blue-100 text-blue-800' },
   received: { label: 'Recibido', className: 'bg-emerald-100 text-emerald-800' },
 };

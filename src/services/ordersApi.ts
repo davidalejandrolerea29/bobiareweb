@@ -25,7 +25,7 @@ export const ordersApi = {
 
   // --- Staff (Administrador / Gerente General / Finanzas / Stock) ---
 
-  addPayment: (orderId: number, type: 'deposit' | 'balance' | 'refund', amount: number, method?: string) =>
+  addPayment: (orderId: number, type: 'payment' | 'refund', amount: number, method?: string) =>
     apiFetch<Payment>(`/orders/${orderId}/payments`, {
       method: 'POST',
       body: { type, amount, method },
