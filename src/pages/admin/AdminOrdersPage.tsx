@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { AlertCircle, Eye, PackageCheck, Search, SlidersHorizontal } from 'lucide-react';
+import { AlertCircle, Eye, Search, SlidersHorizontal } from 'lucide-react';
 import { ordersApi } from '../../services/ordersApi';
 import { ApiError } from '../../services/apiClient';
 import { Order, OrderStatus } from '../../types';
@@ -10,6 +10,9 @@ const statusOptions: { value: OrderStatus; label: string }[] = [
   { value: 'paid', label: 'Pagado' },
   { value: 'shipped_by_customer', label: 'En camino al taller' },
   { value: 'received', label: 'Recibido' },
+  { value: 'in_process', label: 'En proceso' },
+  { value: 'ready_to_return', label: 'Listo para devolver' },
+  { value: 'shipped_to_customer', label: 'Despachado de vuelta' },
 ];
 
 const statusClasses: Record<string, string> = {
@@ -17,6 +20,9 @@ const statusClasses: Record<string, string> = {
   paid: 'bg-amber-100 text-amber-800',
   shipped_by_customer: 'bg-blue-100 text-blue-800',
   received: 'bg-emerald-100 text-emerald-800',
+  in_process: 'bg-purple-100 text-purple-800',
+  ready_to_return: 'bg-teal-100 text-teal-800',
+  shipped_to_customer: 'bg-indigo-100 text-indigo-800',
 };
 
 const formatMoney = (value: string | number) =>
@@ -32,7 +38,6 @@ const AdminOrdersPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [actionError, setActionError] = useState<string | null>(null);
-  const [receivingId, setReceivingId] = useState<number | null>(null);
   const [viewingOrderId, setViewingOrderId] = useState<number | null>(null);
 
   const loadOrders = () => {
@@ -50,19 +55,6 @@ const AdminOrdersPage: React.FC = () => {
     loadOrders();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter]);
-
-  const handleReceive = async (orderId: number) => {
-    setActionError(null);
-    setReceivingId(orderId);
-    try {
-      await ordersApi.receive(orderId);
-      loadOrders();
-    } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : 'No se pudo marcar como recibido');
-    } finally {
-      setReceivingId(null);
-    }
-  };
 
   const filteredOrders = orders.filter((order) => {
     const query = searchQuery.trim().toLowerCase();
@@ -139,7 +131,6 @@ const AdminOrdersPage: React.FC = () => {
             <tbody className="divide-y divide-neutral-100">
               {!loading && filteredOrders.map((order) => {
                 const label = statusOptions.find((status) => status.value === order.status)?.label ?? order.status;
-                const canReceive = order.status === 'paid' || order.status === 'shipped_by_customer';
                 return (
                   <tr key={order.id} className="hover:bg-neutral-50">
                     <td className="px-5 py-4 text-sm font-bold text-neutral-900">#{order.id}</td>
@@ -156,28 +147,15 @@ const AdminOrdersPage: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-5 py-4 text-right text-sm font-bold text-neutral-900">{formatMoney(order.total)}</td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setViewingOrderId(order.id)}
-                          className="inline-flex h-9 items-center gap-2 rounded-md border border-neutral-300 bg-white px-3 text-xs font-semibold text-neutral-700 hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700"
-                        >
-                          <Eye size={16} />
-                          Ver detalle
-                        </button>
-                        {canReceive && (
-                          <button
-                            type="button"
-                            onClick={() => handleReceive(order.id)}
-                            disabled={receivingId === order.id}
-                            className="inline-flex h-9 items-center gap-2 rounded-md border border-neutral-300 bg-white px-3 text-xs font-semibold text-neutral-700 hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700 disabled:cursor-wait disabled:opacity-60"
-                          >
-                            <PackageCheck size={16} />
-                            {receivingId === order.id ? 'Procesando' : 'Recibir'}
-                          </button>
-                        )}
-                      </div>
+                    <td className="px-5 py-4 text-right">
+                      <button
+                        type="button"
+                        onClick={() => setViewingOrderId(order.id)}
+                        className="inline-flex h-9 items-center gap-2 rounded-md border border-neutral-300 bg-white px-3 text-xs font-semibold text-neutral-700 hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700"
+                      >
+                        <Eye size={16} />
+                        Ver detalle
+                      </button>
                     </td>
                   </tr>
                 );
@@ -200,7 +178,11 @@ const AdminOrdersPage: React.FC = () => {
       </section>
 
       {viewingOrderId !== null && (
-        <OrderDetailModal orderId={viewingOrderId} onClose={() => setViewingOrderId(null)} />
+        <OrderDetailModal
+          orderId={viewingOrderId}
+          onClose={() => setViewingOrderId(null)}
+          onStatusChanged={loadOrders}
+        />
       )}
     </div>
   );

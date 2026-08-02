@@ -45,6 +45,20 @@ export const ordersApi = {
 
   adminShow: (id: number) => apiFetch<Order>(`/admin/orders/${id}`),
 
-  receive: (id: number, note?: string) =>
-    apiFetch<Order>(`/admin/orders/${id}/receive`, { method: 'POST', body: { note } }),
+  // Avanza el pedido un paso (recibido -> procesando -> listo -> despachado).
+  // tracking_number/carrier solo hacen falta para el paso a "shipped_to_customer".
+  updateStatus: (
+    id: number,
+    status: 'received' | 'in_process' | 'ready_to_return' | 'shipped_to_customer',
+    options?: { note?: string; trackingNumber?: string; carrier?: string }
+  ) =>
+    apiFetch<Order>(`/admin/orders/${id}/status`, {
+      method: 'POST',
+      body: {
+        status,
+        note: options?.note,
+        tracking_number: options?.trackingNumber,
+        carrier: options?.carrier,
+      },
+    }),
 };

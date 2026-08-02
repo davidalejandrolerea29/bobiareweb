@@ -20,6 +20,9 @@ const statusLabels: Record<string, string> = {
   paid: 'Pago acreditado — falta cargar el envío',
   shipped_by_customer: 'Pieza en camino al taller',
   received: 'Pieza recibida en el taller',
+  in_process: 'Tu pieza está en proceso de restauración',
+  ready_to_return: 'Lista — estamos preparando el envío de vuelta',
+  shipped_to_customer: 'Despachada de vuelta',
 };
 
 const CORREO_ARGENTINO_TRACKING_URL = 'https://www.correoargentino.com.ar/seguimiento-de-envios';
@@ -28,6 +31,7 @@ const OrderConfirmationPage: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const [order, setOrder] = useState<Order | null>(null);
   const [shipment, setShipment] = useState<Shipment | null>(null);
+  const [returnShipment, setReturnShipment] = useState<Shipment | null>(null);
   const [loading, setLoading] = useState(true);
   const [payingWithMp, setPayingWithMp] = useState(false);
   const [mpError, setMpError] = useState<string | null>(null);
@@ -44,6 +48,8 @@ const OrderConfirmationPage: React.FC = () => {
         setOrder(orderData);
         const toWorkshop = shipments.find((s) => s.direction === 'to_workshop') ?? null;
         setShipment(toWorkshop);
+        const toCustomer = shipments.find((s) => s.direction === 'to_customer') ?? null;
+        setReturnShipment(toCustomer);
         // No se abre solo: recién acaba de pagar, todavía no tiene el
         // número de seguimiento (falta que despache la pieza). La tarjeta
         // de abajo ("Falta cargar el envío") queda como recordatorio
@@ -221,11 +227,29 @@ const OrderConfirmationPage: React.FC = () => {
                 </div>
               )}
 
-              {(order.status === 'shipped_by_customer' || order.status === 'received') && (
+              {returnShipment && (
+                <div className="mb-8 bg-primary-50 border border-primary-100 rounded-md p-6">
+                  <h3 className="font-medium text-lg mb-2 text-neutral-800">Tu pieza va en camino de vuelta</h3>
+                  <p className="text-sm text-neutral-600 mb-1">
+                    Número de seguimiento:{' '}
+                    <span className="font-mono font-medium">{returnShipment.tracking_number}</span>
+                  </p>
+                  <a
+                    href={CORREO_ARGENTINO_TRACKING_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center text-sm text-primary-600 hover:text-primary-700 font-medium mt-2"
+                  >
+                    Ver estado en Correo Argentino <ExternalLink size={14} className="ml-1" />
+                  </a>
+                </div>
+              )}
+
+              {['shipped_by_customer', 'received', 'in_process', 'ready_to_return'].includes(order.status) && (
                 <div className="mb-8">
                   <h3 className="font-medium text-lg mb-4 text-neutral-800">Próximos pasos</h3>
                   <div className="space-y-3 text-sm text-neutral-600">
-                    <p>Te avisamos por mail cuando la pieza llegue al taller y a medida que avance el trabajo.</p>
+                    <p>Te avisamos por mail a medida que avance el trabajo, y te pasamos el número de seguimiento de vuelta apenas la despachemos.</p>
                   </div>
                 </div>
               )}

@@ -12,6 +12,9 @@ const statusLabels: Record<string, string> = {
   paid: 'Pago acreditado — falta cargar el envío',
   shipped_by_customer: 'Pieza en camino al taller',
   received: 'Pieza recibida en el taller',
+  in_process: 'En proceso de restauración',
+  ready_to_return: 'Lista, preparando el envío de vuelta',
+  shipped_to_customer: 'Despachada de vuelta',
 };
 
 const formatMoney = (value: string | number) =>

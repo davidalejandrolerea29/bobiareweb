@@ -140,7 +140,10 @@ export type OrderStatus =
   | 'pending_payment'
   | 'paid'
   | 'shipped_by_customer'
-  | 'received';
+  | 'received'
+  | 'in_process'
+  | 'ready_to_return'
+  | 'shipped_to_customer';
 
 export interface Shipment {
   id: number;
