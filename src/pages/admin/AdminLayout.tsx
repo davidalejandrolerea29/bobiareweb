@@ -17,14 +17,26 @@ const navigation = [
   { label: 'Resumen', to: '/admin', icon: LayoutDashboard, end: true },
   { label: 'Pedidos', to: '/admin/pedidos', icon: ShoppingBag },
   { label: 'Calendario', to: '/admin/calendario', icon: CalendarDays },
-  { label: 'Nuevo servicio', to: '/admin/addproduct', icon: PackagePlus },
+  { label: 'Servicios', to: '/admin/servicios', icon: PackagePlus },
 ];
 
 const pageTitles: Record<string, { title: string; eyebrow: string }> = {
   '/admin': { title: 'Resumen general', eyebrow: 'Panel de control' },
   '/admin/pedidos': { title: 'Gestión de pedidos', eyebrow: 'Operaciones' },
   '/admin/calendario': { title: 'Calendario', eyebrow: 'Planificación' },
+  '/admin/servicios': { title: 'Servicios', eyebrow: 'Catálogo' },
   '/admin/addproduct': { title: 'Nuevo servicio', eyebrow: 'Catálogo' },
+};
+
+// Match exacto primero; si no hay (ej. /admin/servicios/5/editar), usa el
+// prefijo más largo que matchee — así las rutas dinámicas de edición
+// heredan el título de su sección sin tener que listar cada id posible.
+const resolvePageTitle = (pathname: string) => {
+  if (pageTitles[pathname]) return pageTitles[pathname];
+  const match = Object.keys(pageTitles)
+    .filter((path) => path !== '/admin' && pathname.startsWith(path))
+    .sort((a, b) => b.length - a.length)[0];
+  return pageTitles[match] ?? pageTitles['/admin'];
 };
 
 const AdminLayout: React.FC = () => {
@@ -32,7 +44,7 @@ const AdminLayout: React.FC = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const page = pageTitles[location.pathname] ?? pageTitles['/admin'];
+  const page = resolvePageTitle(location.pathname);
 
   const handleLogout = async () => {
     await logout();

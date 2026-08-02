@@ -1,9 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, CheckCircle, User, Truck, ShieldCheck } from 'lucide-react';
+import { ChevronRight, CheckCircle, Check, Copy, MapPin, User, Truck, ShieldCheck } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { ApiError } from '../services/apiClient';
+import { PACKING_INSTRUCTIONS, WORKSHOP_ADDRESS, workshopAddressAsText } from '../utils/workshopAddress';
+
+interface Province {
+  id: string;
+  nombre: string;
+}
+
+// API pública del Ministerio del Interior (sin key, CORS abierto) — evita
+// que el cliente tenga que tipear mal el nombre de la provincia a mano.
+const PROVINCES_API_URL = 'https://apis.datos.gob.ar/georef/api/provincias?campos=id,nombre&orden=nombre';
 
 const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
@@ -29,6 +39,22 @@ const CheckoutPage: React.FC = () => {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [provinces, setProvinces] = useState<Province[]>([]);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    fetch(PROVINCES_API_URL)
+      .then((res) => res.json())
+      .then((data: { provincias: Province[] }) => setProvinces(data.provincias))
+      .catch(() => setProvinces([]));
+  }, []);
+
+  const handleCopyAddress = () => {
+    navigator.clipboard.writeText(workshopAddressAsText()).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -223,17 +249,46 @@ const CheckoutPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Step 2: Shipping */}
+              {/* Step 2: Contact + dirección del taller */}
               {step === 2 && (
                 <div className="animate-fade-in">
+                  <div className="mb-6 rounded-md border border-primary-100 bg-primary-50 p-4">
+                    <h2 className="font-heading font-semibold text-lg mb-3 text-neutral-800 flex items-center">
+                      <MapPin size={20} className="mr-2 text-primary-500" />
+                      Cómo enviarnos tu pieza
+                    </h2>
+                    <p className="text-sm text-neutral-600 mb-3">
+                      Despachala por Correo Argentino a nombre y dirección del taller:
+                    </p>
+                    <div className="bg-white rounded-md border border-neutral-200 p-3 text-sm text-neutral-800 font-mono mb-3">
+                      <p>{WORKSHOP_ADDRESS.recipient}</p>
+                      <p>{WORKSHOP_ADDRESS.street}</p>
+                      <p>{WORKSHOP_ADDRESS.city}, {WORKSHOP_ADDRESS.province}</p>
+                      <p>CP {WORKSHOP_ADDRESS.postal_code}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCopyAddress}
+                      className="inline-flex items-center text-sm font-medium text-primary-600 hover:text-primary-700"
+                    >
+                      {copied ? <Check size={16} className="mr-1" /> : <Copy size={16} className="mr-1" />}
+                      {copied ? 'Copiado' : 'Copiar dirección'}
+                    </button>
+                    <ul className="mt-4 space-y-1 text-sm text-neutral-600 list-disc list-inside">
+                      {PACKING_INSTRUCTIONS.map((instruction) => (
+                        <li key={instruction}>{instruction}</li>
+                      ))}
+                    </ul>
+                  </div>
+
                   <h2 className="font-heading font-semibold text-xl mb-6 text-neutral-800 flex items-center">
                     <Truck size={20} className="mr-2 text-primary-500" />
-                    Dirección de envío
+                    Datos de contacto
                   </h2>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                     <div>
-                      <label htmlFor="recipient_name" className="block text-sm font-medium text-neutral-700 mb-1">Nombre de quien recibe *</label>
+                      <label htmlFor="recipient_name" className="block text-sm font-medium text-neutral-700 mb-1">Nombre y apellido *</label>
                       <input
                         type="text" id="recipient_name" name="recipient_name" value={formData.recipient_name} onChange={handleChange}
                         className={`w-full p-3 border ${errors.recipient_name ? 'border-error-500' : 'border-neutral-300'} rounded-md focus:ring-primary-500 focus:border-primary-500`}
@@ -249,6 +304,10 @@ const CheckoutPage: React.FC = () => {
                       {errors.phone && <p className="mt-1 text-sm text-error-500">{errors.phone}</p>}
                     </div>
                   </div>
+
+                  <p className="text-sm text-neutral-500 mb-4">
+                    Esta dirección es la tuya — la usamos para devolverte la pieza una vez terminado el trabajo.
+                  </p>
 
                   <div className="mb-6">
                     <label htmlFor="street" className="block text-sm font-medium text-neutral-700 mb-1">Dirección *</label>
@@ -270,10 +329,15 @@ const CheckoutPage: React.FC = () => {
                     </div>
                     <div>
                       <label htmlFor="province" className="block text-sm font-medium text-neutral-700 mb-1">Provincia *</label>
-                      <input
-                        type="text" id="province" name="province" value={formData.province} onChange={handleChange}
-                        className={`w-full p-3 border ${errors.province ? 'border-error-500' : 'border-neutral-300'} rounded-md focus:ring-primary-500 focus:border-primary-500`}
-                      />
+                      <select
+                        id="province" name="province" value={formData.province} onChange={handleChange}
+                        className={`w-full p-3 border ${errors.province ? 'border-error-500' : 'border-neutral-300'} rounded-md focus:ring-primary-500 focus:border-primary-500 bg-white`}
+                      >
+                        <option value="">Seleccioná una provincia</option>
+                        {provinces.map((province) => (
+                          <option key={province.id} value={province.nombre}>{province.nombre}</option>
+                        ))}
+                      </select>
                       {errors.province && <p className="mt-1 text-sm text-error-500">{errors.province}</p>}
                     </div>
                   </div>
@@ -319,9 +383,9 @@ const CheckoutPage: React.FC = () => {
                   <div className="flex items-start bg-primary-50 border border-primary-100 rounded-md p-4 mb-6 text-sm text-neutral-700">
                     <ShieldCheck size={18} className="mr-2 mt-0.5 text-primary-500 flex-shrink-0" />
                     <p>
-                      Todavía no tenemos pasarela de pago online conectada. Al confirmar, generamos tu
-                      pedido y nuestro equipo te va a contactar por email/teléfono para coordinar el
-                      pago del total antes de que envíes la pieza.
+                      Al confirmar generamos tu pedido y te mostramos el botón para pagar el total con
+                      Mercado Pago. Una vez acreditado el pago, te vamos a pedir que despaches la pieza
+                      al taller (ver la dirección y las instrucciones de embalaje en el paso anterior).
                     </p>
                   </div>
 

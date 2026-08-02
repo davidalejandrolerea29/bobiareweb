@@ -11,6 +11,8 @@ import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminOrdersPage from './pages/admin/AdminOrdersPage';
 import AdminCalendarPage from './pages/admin/AdminCalendarPage';
 import AddProductScreen from './pages/admin/AddProductScreen';
+import EditProductScreen from './pages/admin/EditProductScreen';
+import AdminProductsPage from './pages/admin/AdminProductsPage';
 import AdminLayout from './pages/admin/AdminLayout';
 import NotFoundPage from './pages/NotFoundPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
@@ -72,6 +74,8 @@ function App() {
             <Route index element={<AdminDashboardPage />} />
             <Route path="pedidos" element={<AdminOrdersPage />} />
             <Route path="calendario" element={<AdminCalendarPage />} />
+            <Route path="servicios" element={<AdminProductsPage />} />
+            <Route path="servicios/:productId/editar" element={<EditProductScreen />} />
             <Route path="addproduct" element={<AddProductScreen />} />
           </Route>
           <Route path="/login" element={<Login />} />

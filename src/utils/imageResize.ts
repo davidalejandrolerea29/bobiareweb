@@ -43,3 +43,22 @@ export function resizeImageFile(file: File): Promise<string> {
     img.src = objectUrl;
   });
 }
+
+// Convierte una imagen ya subida (URL de Supabase Storage) a data-URI. Se
+// usa al editar un producto: el backend reemplaza TODAS las imágenes en
+// cada guardado, así que si el admin agrega o saca una foto hay que
+// reenviar también las que se mantienen — ya vienen comprimidas de antes,
+// no hace falta pasarlas de nuevo por resizeImageFile.
+export function urlToBase64(url: string): Promise<string> {
+  return fetch(url)
+    .then((res) => res.blob())
+    .then(
+      (blob) =>
+        new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = () => reject(new Error('No se pudo leer una imagen existente.'));
+          reader.readAsDataURL(blob);
+        }),
+    );
+}
