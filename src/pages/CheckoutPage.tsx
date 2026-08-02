@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, CheckCircle, Check, Copy, MapPin, User, Truck, ShieldCheck } from 'lucide-react';
+import { ChevronRight, Check, Copy, CreditCard, Loader2, MapPin, User, Truck } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { ApiError } from '../services/apiClient';
+import { ordersApi } from '../services/ordersApi';
 import { PACKING_INSTRUCTIONS, WORKSHOP_ADDRESS, workshopAddressAsText } from '../utils/workshopAddress';
 
 interface Province {
@@ -108,7 +109,9 @@ const CheckoutPage: React.FC = () => {
     window.scrollTo(0, 0);
   };
 
-  const handleConfirm = async () => {
+  const handlePayNow = async () => {
+    if (!validateStep(2)) return;
+
     setFormError(null);
     setSubmitting(true);
     try {
@@ -136,10 +139,18 @@ const CheckoutPage: React.FC = () => {
         });
       }
 
-      navigate(`/confirmacion/${response.id}`);
+      // El pedido ya quedó creado (pending_payment) llegado a este punto —
+      // si falla iniciar el pago con MP no tiene sentido dejar al cliente
+      // sin salida: lo mandamos a la pantalla del pedido, que tiene su
+      // propio botón "Pagar con Mercado Pago" para reintentar.
+      try {
+        const { init_point: initPoint } = await ordersApi.checkoutMercadoPago(response.id);
+        window.location.href = initPoint;
+      } catch {
+        navigate(`/confirmacion/${response.id}`);
+      }
     } catch (err) {
       setFormError(err instanceof ApiError ? err.message : 'No pudimos confirmar tu pedido, intentá de nuevo.');
-    } finally {
       setSubmitting(false);
     }
   };
@@ -184,20 +195,9 @@ const CheckoutPage: React.FC = () => {
               <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${
                 step >= 2 ? 'bg-primary-500 text-white' : 'bg-neutral-200 text-neutral-500'
               }`}>
-                <Truck size={18} />
+                <CreditCard size={18} />
               </div>
-              <span className="text-sm">Envío</span>
-            </div>
-
-            <div className={`flex-1 h-1 mx-2 ${step >= 3 ? 'bg-primary-500' : 'bg-neutral-200'}`}></div>
-
-            <div className={`flex flex-col items-center ${step >= 3 ? 'text-primary-500' : 'text-neutral-400'}`}>
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${
-                step >= 3 ? 'bg-primary-500 text-white' : 'bg-neutral-200 text-neutral-500'
-              }`}>
-                <CheckCircle size={18} />
-              </div>
-              <span className="text-sm">Confirmación</span>
+              <span className="text-sm">Pago</span>
             </div>
           </div>
         </div>
@@ -359,50 +359,22 @@ const CheckoutPage: React.FC = () => {
                     />
                   </div>
 
+                  {formError && <p className="text-sm text-error-500 mb-4">{formError}</p>}
+
                   <div className="flex justify-between">
                     {!isAuthenticated && (
                       <button type="button" onClick={handleBack} className="px-6 py-3 bg-neutral-200 text-neutral-800 font-medium rounded-md hover:bg-neutral-300 transition-colors">
                         Atrás
                       </button>
                     )}
-                    <button type="button" onClick={handleNext} className="px-6 py-3 bg-primary-500 text-white font-medium rounded-md hover:bg-primary-600 transition-colors flex items-center ml-auto">
-                      Continuar <ChevronRight size={18} className="ml-2" />
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 3: Review & confirm — sin pasarela de pago todavía */}
-              {step === 3 && (
-                <div className="animate-fade-in">
-                  <h2 className="font-heading font-semibold text-xl mb-6 text-neutral-800 flex items-center">
-                    <ShieldCheck size={20} className="mr-2 text-primary-500" />
-                    Confirmar pedido
-                  </h2>
-
-                  <div className="flex items-start bg-primary-50 border border-primary-100 rounded-md p-4 mb-6 text-sm text-neutral-700">
-                    <ShieldCheck size={18} className="mr-2 mt-0.5 text-primary-500 flex-shrink-0" />
-                    <p>
-                      Al confirmar generamos tu pedido y te mostramos el botón para pagar el total con
-                      Mercado Pago. Una vez acreditado el pago, te vamos a pedir que despaches la pieza
-                      al taller (ver la dirección y las instrucciones de embalaje en el paso anterior).
-                    </p>
-                  </div>
-
-                  {formError && <p className="text-sm text-error-500 mb-4">{formError}</p>}
-
-                  <div className="flex justify-between">
-                    <button type="button" onClick={handleBack} className="px-6 py-3 bg-neutral-200 text-neutral-800 font-medium rounded-md hover:bg-neutral-300 transition-colors">
-                      Atrás
-                    </button>
                     <button
                       type="button"
-                      onClick={handleConfirm}
+                      onClick={handlePayNow}
                       disabled={submitting}
-                      className="px-6 py-3 bg-primary-500 text-white font-medium rounded-md hover:bg-primary-600 transition-colors flex items-center disabled:opacity-60"
+                      className="px-6 py-3 bg-primary-500 text-white font-medium rounded-md hover:bg-primary-600 transition-colors flex items-center ml-auto disabled:opacity-60"
                     >
-                      {submitting ? 'Confirmando...' : 'Confirmar Pedido'}
-                      <ChevronRight size={18} className="ml-2" />
+                      {submitting ? <Loader2 size={18} className="mr-2 animate-spin" /> : <CreditCard size={18} className="mr-2" />}
+                      {submitting ? 'Redirigiendo a Mercado Pago...' : 'Pagar con Mercado Pago'}
                     </button>
                   </div>
                 </div>
