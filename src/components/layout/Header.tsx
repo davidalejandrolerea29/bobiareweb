@@ -112,7 +112,11 @@ const Header: React.FC = () => {
                 </button>
               </div>
             ) : (
-              <Link to="/login" className="p-2 rounded-full hover:bg-neutral-100 transition-colors">
+              <Link
+                to="/register"
+                className="p-2 rounded-full hover:bg-neutral-100 transition-colors"
+                title="Crear cuenta"
+              >
                 <User size={20} className="text-neutral-700" />
               </Link>
             )}
