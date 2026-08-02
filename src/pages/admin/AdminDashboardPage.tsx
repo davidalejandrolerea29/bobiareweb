@@ -11,14 +11,26 @@ import {
   Truck,
 } from 'lucide-react';
 import { ordersApi } from '../../services/ordersApi';
+import { statsApi, RevenuePeriod, RevenueStats } from '../../services/statsApi';
 import { Order } from '../../types';
+import RevenueChart from '../../components/admin/RevenueChart';
 
 const statusMeta: Record<string, { label: string; className: string }> = {
   pending_payment: { label: 'Pendiente de pago', className: 'bg-neutral-100 text-neutral-700' },
   paid: { label: 'Pagado', className: 'bg-amber-100 text-amber-800' },
   shipped_by_customer: { label: 'En camino', className: 'bg-blue-100 text-blue-800' },
   received: { label: 'Recibido', className: 'bg-emerald-100 text-emerald-800' },
+  in_process: { label: 'En proceso', className: 'bg-purple-100 text-purple-800' },
+  ready_to_return: { label: 'Listo para devolver', className: 'bg-teal-100 text-teal-800' },
+  shipped_to_customer: { label: 'Despachado', className: 'bg-indigo-100 text-indigo-800' },
 };
+
+const PERIOD_OPTIONS: { value: RevenuePeriod; label: string }[] = [
+  { value: 'day', label: 'Día' },
+  { value: 'week', label: 'Semana' },
+  { value: 'month', label: 'Mes' },
+  { value: 'year', label: 'Año' },
+];
 
 const formatMoney = (value: string | number) =>
   new Intl.NumberFormat('es-AR', {
@@ -31,6 +43,10 @@ const AdminDashboardPage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [totalOrders, setTotalOrders] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const [revenuePeriod, setRevenuePeriod] = useState<RevenuePeriod>('month');
+  const [revenueStats, setRevenueStats] = useState<RevenueStats | null>(null);
+  const [revenueLoading, setRevenueLoading] = useState(true);
 
   useEffect(() => {
     ordersApi
@@ -45,6 +61,16 @@ const AdminDashboardPage: React.FC = () => {
       })
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- refetch al cambiar el período, sin loop
+    setRevenueLoading(true);
+    statsApi
+      .revenue(revenuePeriod)
+      .then(setRevenueStats)
+      .catch(() => setRevenueStats(null))
+      .finally(() => setRevenueLoading(false));
+  }, [revenuePeriod]);
 
   const pending = orders.filter((order) => order.status === 'pending_payment').length;
   const inTransit = orders.filter((order) => order.status === 'shipped_by_customer').length;
@@ -115,6 +141,65 @@ const AdminDashboardPage: React.FC = () => {
             <p className="mt-3 text-xs text-neutral-500">{note}</p>
           </article>
         ))}
+      </section>
+
+      <section className="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+          <div>
+            <h3 className="font-semibold text-neutral-900">Ingresos</h3>
+            <p className="mt-0.5 text-xs text-neutral-500">Acreditado vs. pendiente, por período.</p>
+          </div>
+          <div className="inline-flex rounded-md border border-neutral-200 p-1">
+            {PERIOD_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setRevenuePeriod(option.value)}
+                className={`rounded px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  revenuePeriod === option.value
+                    ? 'bg-primary-600 text-white'
+                    : 'text-neutral-600 hover:bg-neutral-100'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {revenueStats && (
+          <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div>
+              <p className="text-xs text-neutral-500">Acreditado</p>
+              <p className="mt-1 text-xl font-bold text-neutral-900">{formatMoney(revenueStats.totals.accredited)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-neutral-500">No acreditado</p>
+              <p className="mt-1 text-xl font-bold text-neutral-900">{formatMoney(revenueStats.totals.pending)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-neutral-500">Total</p>
+              <p className="mt-1 text-xl font-bold text-neutral-900">
+                {formatMoney(revenueStats.totals.accredited + revenueStats.totals.pending)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-neutral-500">Pedidos</p>
+              <p className="mt-1 text-xl font-bold text-neutral-900">{revenueStats.totals.order_count}</p>
+            </div>
+          </div>
+        )}
+
+        <div className="mt-5">
+          {revenueLoading && !revenueStats && (
+            <div className="flex h-60 items-center justify-center text-sm text-neutral-500">Cargando...</div>
+          )}
+          {revenueStats && (
+            <div style={{ opacity: revenueLoading ? 0.6 : 1 }} className="transition-opacity">
+              <RevenueChart buckets={revenueStats.buckets} />
+            </div>
+          )}
+        </div>
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
