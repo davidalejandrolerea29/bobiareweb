@@ -97,9 +97,9 @@ const Header: React.FC = () => {
             {isAuthenticated ? (
               <div className="flex items-center space-x-1">
                 <Link
-                  to={isStaff ? '/admin' : '/home'}
+                  to={isStaff ? '/admin' : '/pedidos'}
                   className="p-2 rounded-full hover:bg-neutral-100 transition-colors flex items-center"
-                  title={user?.name}
+                  title={isStaff ? user?.name : 'Mis pedidos'}
                 >
                   <User size={20} className="text-neutral-700" />
                 </Link>

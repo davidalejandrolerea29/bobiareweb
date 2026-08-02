@@ -8,6 +8,7 @@ import {
   CreditCard,
   Loader2,
   ExternalLink,
+  X,
 } from 'lucide-react';
 import { ordersApi } from '../services/ordersApi';
 import { ApiError } from '../services/apiClient';
@@ -43,12 +44,10 @@ const OrderConfirmationPage: React.FC = () => {
         setOrder(orderData);
         const toWorkshop = shipments.find((s) => s.direction === 'to_workshop') ?? null;
         setShipment(toWorkshop);
-        // El envío es obligatorio para avanzar: si ya está pagado y todavía
-        // no cargó el tracking, se lo pedimos apenas entra a la página, no
-        // como una tarjeta más que puede pasar de largo.
-        if (orderData.status === 'paid' && !toWorkshop) {
-          setTrackingModalOpen(true);
-        }
+        // No se abre solo: recién acaba de pagar, todavía no tiene el
+        // número de seguimiento (falta que despache la pieza). La tarjeta
+        // de abajo ("Falta cargar el envío") queda como recordatorio
+        // permanente y no bloqueante — el modal se abre solo si lo pide.
       })
       .catch(() => setOrder(null))
       .finally(() => setLoading(false));
@@ -189,14 +188,15 @@ const OrderConfirmationPage: React.FC = () => {
                 <div className="mb-8 bg-amber-50 border border-amber-200 rounded-md p-6 text-center">
                   <h3 className="font-medium text-lg mb-2 text-neutral-800">Falta cargar el envío</h3>
                   <p className="text-sm text-neutral-600 mb-4">
-                    Despachá tu pieza por Correo Argentino y cargá acá el número de seguimiento.
+                    Cuando despaches tu pieza por Correo Argentino, volvé a esta pantalla (o a "Mis
+                    pedidos") y cargá acá el número de seguimiento. No hace falta que sea ahora.
                   </p>
                   <button
                     type="button"
                     onClick={() => setTrackingModalOpen(true)}
                     className="inline-flex items-center px-6 py-3 bg-amber-500 text-white font-medium rounded-md hover:bg-amber-600 transition-colors"
                   >
-                    Cargar número de seguimiento
+                    Ya la despaché, cargar seguimiento
                   </button>
                 </div>
               )}
@@ -287,14 +287,26 @@ const OrderConfirmationPage: React.FC = () => {
       </div>
 
       {trackingModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            <h2 className="font-heading text-xl font-bold text-neutral-800 mb-2">
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setTrackingModalOpen(false)}
+        >
+          <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              onClick={() => setTrackingModalOpen(false)}
+              aria-label="Cerrar"
+              className="absolute right-4 top-4 text-neutral-400 hover:text-neutral-600"
+            >
+              <X size={20} />
+            </button>
+            <h2 className="font-heading text-xl font-bold text-neutral-800 mb-2 pr-6">
               Cargá el seguimiento de tu envío
             </h2>
             <p className="text-sm text-neutral-600 mb-4">
               Despachá tu pieza por Correo Argentino y pegá acá el número de seguimiento que te
-              dieron — lo necesitamos para saber que ya la enviaste.
+              dieron — lo necesitamos para saber que ya la enviaste. Si todavía no la despachaste,
+              cerrá esto tranquilo y volvé cuando la tengas.
             </p>
             <form onSubmit={handleSubmitTracking}>
               <label htmlFor="tracking_number" className="block text-sm font-medium text-neutral-700 mb-1">

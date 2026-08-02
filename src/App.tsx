@@ -7,6 +7,7 @@ import ProductDetailPage from './pages/ProductDetailPage';
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
 import OrderConfirmationPage from './pages/OrderConfirmationPage';
+import MyOrdersPage from './pages/MyOrdersPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminOrdersPage from './pages/admin/AdminOrdersPage';
 import AdminCalendarPage from './pages/admin/AdminCalendarPage';
@@ -60,6 +61,14 @@ function App() {
             <Route path="checkout" element={<CheckoutPage />} />
             <Route path="register" element={<RegisterScreen />} />
             <Route path="confirmacion/:orderId" element={<OrderConfirmationPage />} />
+            <Route
+              path="pedidos"
+              element={
+                <ProtectedRoute>
+                  <MyOrdersPage />
+                </ProtectedRoute>
+              }
+            />
             <Route path="politica-privacidad" element={<PrivacyPolicyPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
