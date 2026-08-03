@@ -6,6 +6,7 @@ import {
   ExternalLink,
   LayoutDashboard,
   LogOut,
+  Mail,
   Menu,
   PackagePlus,
   ShoppingBag,
@@ -18,6 +19,7 @@ const navigation = [
   { label: 'Pedidos', to: '/admin/pedidos', icon: ShoppingBag },
   { label: 'Calendario', to: '/admin/calendario', icon: CalendarDays },
   { label: 'Servicios', to: '/admin/servicios', icon: PackagePlus },
+  { label: 'Mensajes', to: '/admin/mensajes', icon: Mail },
 ];
 
 const pageTitles: Record<string, { title: string; eyebrow: string }> = {
@@ -26,6 +28,7 @@ const pageTitles: Record<string, { title: string; eyebrow: string }> = {
   '/admin/calendario': { title: 'Calendario', eyebrow: 'Planificación' },
   '/admin/servicios': { title: 'Servicios', eyebrow: 'Catálogo' },
   '/admin/addproduct': { title: 'Nuevo servicio', eyebrow: 'Catálogo' },
+  '/admin/mensajes': { title: 'Mensajes por estado', eyebrow: 'Notificaciones' },
 };
 
 // Match exacto primero; si no hay (ej. /admin/servicios/5/editar), usa el

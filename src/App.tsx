@@ -26,6 +26,11 @@ import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 
+// Lazy: mermaid pesa ~150kb+ gzipped y solo lo usa esta pantalla de admin
+// — importarla normal la mete en el bundle principal que descarga
+// cualquier visitante del sitio, cliente o no.
+const AdminMessageTemplatesPage = React.lazy(() => import('./pages/admin/AdminMessageTemplatesPage'));
+
 function App() {
   const [showPromo, setShowPromo] = React.useState(false);
   const location = useLocation();
@@ -86,6 +91,20 @@ function App() {
             <Route path="servicios" element={<AdminProductsPage />} />
             <Route path="servicios/:productId/editar" element={<EditProductScreen />} />
             <Route path="addproduct" element={<AddProductScreen />} />
+            <Route
+              path="mensajes"
+              element={
+                <React.Suspense
+                  fallback={
+                    <div className="flex items-center justify-center py-20 text-sm text-neutral-500">
+                      Cargando...
+                    </div>
+                  }
+                >
+                  <AdminMessageTemplatesPage />
+                </React.Suspense>
+              }
+            />
           </Route>
           <Route path="/login" element={<Login />} />
         </Routes>
