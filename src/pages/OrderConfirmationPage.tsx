@@ -46,6 +46,7 @@ const OrderConfirmationPage: React.FC = () => {
   const hasProductionInvoice = order?.afip_invoices?.some(
     (invoice) => invoice.status === 'authorized' && invoice.environment === 'produccion'
   ) ?? false;
+  const shouldPollOrder = order !== null && (order.status === 'pending_payment' || !hasProductionInvoice);
 
   useEffect(() => {
     if (!orderId) return;
@@ -66,7 +67,7 @@ const OrderConfirmationPage: React.FC = () => {
   }, [orderId]);
 
   useEffect(() => {
-    if (!orderId || !order || (order.status !== 'pending_payment' && hasProductionInvoice)) return;
+    if (!orderId || !shouldPollOrder) return;
 
     const startedAt = Date.now();
     const timer = window.setInterval(() => {
@@ -78,7 +79,7 @@ const OrderConfirmationPage: React.FC = () => {
     }, 5_000);
 
     return () => window.clearInterval(timer);
-  }, [orderId, order?.status, hasProductionInvoice]);
+  }, [orderId, shouldPollOrder]);
 
   const handlePayWithMercadoPago = async () => {
     if (!orderId) return;

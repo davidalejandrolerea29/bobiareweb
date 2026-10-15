@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, Check, Copy, CreditCard, FileText, Loader2, MapPin, User, Truck } from 'lucide-react';
+import { ChevronRight, CreditCard, FileText, Loader2, MapPin, User, Truck } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { ApiError } from '../services/apiClient';
 import { ordersApi } from '../services/ordersApi';
-import { PACKING_INSTRUCTIONS, WORKSHOP_ADDRESS, workshopAddressAsText } from '../utils/workshopAddress';
+import { PACKING_INSTRUCTIONS } from '../utils/packingInstructions';
 
 interface Province {
   id: string;
@@ -44,7 +44,6 @@ const CheckoutPage: React.FC = () => {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [provinces, setProvinces] = useState<Province[]>([]);
-  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     fetch(PROVINCES_API_URL)
@@ -52,13 +51,6 @@ const CheckoutPage: React.FC = () => {
       .then((data: { provincias: Province[] }) => setProvinces(data.provincias))
       .catch(() => setProvinces([]));
   }, []);
-
-  const handleCopyAddress = () => {
-    navigator.clipboard.writeText(workshopAddressAsText()).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -275,7 +267,7 @@ const CheckoutPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Step 2: Contact + dirección del taller */}
+              {/* Step 2: Contacto e instrucciones de embalaje */}
               {step === 2 && (
                 <div className="animate-fade-in">
                   <div className="mb-6 rounded-md border border-primary-100 bg-primary-50 p-4">
@@ -283,24 +275,10 @@ const CheckoutPage: React.FC = () => {
                       <MapPin size={20} className="mr-2 text-primary-500" />
                       Cómo enviarnos tu pieza
                     </h2>
-                    <p className="text-sm text-neutral-600 mb-3">
-                      Despachala por Correo Argentino a nombre y dirección del taller:
+                    <p className="text-sm font-medium text-neutral-800 mb-3">
+                      No despaches la pieza todavía. La dirección real del taller se confirmará al coordinar el envío con BOBIARE.
                     </p>
-                    <div className="bg-white rounded-md border border-neutral-200 p-3 text-sm text-neutral-800 font-mono mb-3">
-                      <p>{WORKSHOP_ADDRESS.recipient}</p>
-                      <p>{WORKSHOP_ADDRESS.street}</p>
-                      <p>{WORKSHOP_ADDRESS.city}, {WORKSHOP_ADDRESS.province}</p>
-                      <p>CP {WORKSHOP_ADDRESS.postal_code}</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleCopyAddress}
-                      className="inline-flex items-center text-sm font-medium text-primary-600 hover:text-primary-700"
-                    >
-                      {copied ? <Check size={16} className="mr-1" /> : <Copy size={16} className="mr-1" />}
-                      {copied ? 'Copiado' : 'Copiar dirección'}
-                    </button>
-                    <ul className="mt-4 space-y-1 text-sm text-neutral-600 list-disc list-inside">
+                    <ul className="space-y-1 text-sm text-neutral-600 list-disc list-inside">
                       {PACKING_INSTRUCTIONS.map((instruction) => (
                         <li key={instruction}>{instruction}</li>
                       ))}
