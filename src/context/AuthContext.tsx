@@ -63,7 +63,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const logout = useCallback(async () => {
     try {
-      await unregisterPush();
+      await unregisterPush(false);
     } catch {
       // El registro se reasigna al siguiente usuario de este navegador.
     }

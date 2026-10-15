@@ -4,6 +4,7 @@ import { apiFetch } from './apiClient';
 import { firebaseConfig, firebaseReady } from './firebaseConfig';
 
 const TOKEN_KEY = 'bobiare_push_token';
+const OPT_OUT_KEY = 'bobiare_push_opt_out';
 
 const messaging = async () => {
   if (!firebaseReady || !('serviceWorker' in navigator) || !('Notification' in window) ||
@@ -22,6 +23,7 @@ export function pushPermission(): NotificationPermission | 'unsupported' {
 }
 
 export async function registerPush(prompt: boolean): Promise<boolean> {
+  if (!prompt && localStorage.getItem(OPT_OUT_KEY) === 'true') return false;
   // El permiso debe pedirse directamente desde el click, antes de awaits.
   if (prompt && await Notification.requestPermission() !== 'granted') return false;
   if (Notification.permission !== 'granted') return false;
@@ -38,17 +40,29 @@ export async function registerPush(prompt: boolean): Promise<boolean> {
 
   await apiFetch('/push/installations', { method: 'POST', body: { token } });
   localStorage.setItem(TOKEN_KEY, token);
+  if (prompt) localStorage.removeItem(OPT_OUT_KEY);
   return true;
 }
 
-export async function unregisterPush(): Promise<void> {
+export async function unregisterPush(optOut = true): Promise<void> {
   const token = localStorage.getItem(TOKEN_KEY);
+  let failure: unknown;
   if (token) {
-    await apiFetch('/push/installations', { method: 'DELETE', body: { token } });
+    try {
+      await apiFetch('/push/installations', { method: 'DELETE', body: { token } });
+    } catch (error) {
+      failure = error;
+    }
     localStorage.removeItem(TOKEN_KEY);
   }
   const instance = await messaging();
-  if (instance) await deleteToken(instance);
+  try {
+    if (instance) await deleteToken(instance);
+  } catch (error) {
+    failure ??= error;
+  }
+  if (optOut) localStorage.setItem(OPT_OUT_KEY, 'true');
+  if (failure) throw failure;
 }
 
 export async function listenForPush(callback: (title: string, body: string, orderUrl?: string) => void): Promise<(() => void) | null> {

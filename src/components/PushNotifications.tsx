@@ -16,7 +16,10 @@ export default function PushNotifications() {
     pushAvailable().then((supported) => {
       if (cancelled) return;
       setAvailable(supported);
-      setEnabled(supported && pushPermission() === 'granted');
+      if (supported && pushPermission() === 'granted') {
+        registerPush(false).then((ok) => { if (!cancelled) setEnabled(ok); })
+          .catch(() => { if (!cancelled) setError('No pudimos registrar las notificaciones. Probá de nuevo.'); });
+      }
     }).catch(() => { if (!cancelled) setAvailable(false); });
     return () => { cancelled = true; };
   }, [user]);
