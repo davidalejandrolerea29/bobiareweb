@@ -24,6 +24,7 @@ import RegisterScreen from './pages/RegisterScreen';
 import ProtectedRoute from './components/ProtectedRoute';
 
 import { AuthProvider } from './context/AuthContext';
+import PushForegroundListener from './components/PushForegroundListener';
 import { CartProvider } from './context/CartContext';
 
 // Lazy: mermaid pesa ~150kb+ gzipped y solo lo usa esta pantalla de admin
@@ -54,6 +55,7 @@ function App() {
 
   return (
     <AuthProvider>
+      <PushForegroundListener />
       <CartProvider>
         <Routes>
           <Route path="/" element={<LandingPage />} />

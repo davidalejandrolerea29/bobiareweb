@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, ReactNode, useCa
 import { authApi } from '../services/authApi';
 import { tokenStorage, guestTokenStorage } from '../services/apiClient';
 import { AuthSession, User } from '../types';
+import { unregisterPush } from '../services/pushNotifications';
 
 const STAFF_ROLES = ['Administrador', 'Gerente General', 'Finanzas', 'Stock'];
 
@@ -61,6 +62,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const logout = useCallback(async () => {
+    try {
+      await unregisterPush();
+    } catch {
+      // El registro se reasigna al siguiente usuario de este navegador.
+    }
     try {
       await authApi.logout();
     } catch {

@@ -5,6 +5,7 @@ import { ordersApi } from '../services/ordersApi';
 import { ApiError } from '../services/apiClient';
 import { useAuth } from '../context/AuthContext';
 import { Order } from '../types';
+import PushNotifications from '../components/PushNotifications';
 
 const statusLabels: Record<string, string> = {
   cart: 'Carrito',
@@ -74,6 +75,8 @@ const MyOrdersPage: React.FC = () => {
             </button>
           </div>
         )}
+
+        <PushNotifications />
 
         {loading && (
           <div className="flex items-center justify-center gap-2 py-16 text-neutral-500">
