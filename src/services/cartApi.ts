@@ -16,6 +16,10 @@ export interface CheckoutPayload {
   name?: string;
   email?: string;
   password?: string;
+  // Opcionales — para la factura AFIP. Sin esto, factura a Consumidor Final.
+  billing_document_type?: 'cuit' | 'dni';
+  billing_document_number?: string;
+  billing_name?: string;
 }
 
 export type CheckoutResponse = Order & Partial<AuthSession>;

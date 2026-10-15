@@ -188,6 +188,9 @@ export interface Order {
   total: string;
   shipping_address: ShippingAddress | null;
   notes: string | null;
+  billing_document_type: 'cuit' | 'dni' | null;
+  billing_document_number: string | null;
+  billing_name: string | null;
   created_at: string;
   updated_at: string;
   items: OrderItem[];
@@ -195,6 +198,26 @@ export interface Order {
   payments?: Payment[];
   status_histories?: OrderStatusHistoryEntry[];
   user?: { id: number; name: string; email: string };
+  afip_invoices?: AfipInvoice[];
+}
+
+export interface AfipInvoice {
+  id: number;
+  order_id: number;
+  invoice_type: 'A' | 'B';
+  punto_venta: number;
+  numero_comprobante: string | null;
+  cae: string | null;
+  cae_vencimiento: string | null;
+  fecha_emision: string;
+  importe_total: string;
+  status: 'pending' | 'processing' | 'authorized' | 'failed';
+  environment: string;
+  error_message: string | null;
+  retry_count: number;
+  email_sent_at: string | null;
+  email_error: string | null;
+  created_at: string;
 }
 
 export interface AuthSession {

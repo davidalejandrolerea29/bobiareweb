@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, Check, Copy, CreditCard, Loader2, MapPin, User, Truck } from 'lucide-react';
+import { ChevronRight, Check, Copy, CreditCard, FileText, Loader2, MapPin, User, Truck } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { ApiError } from '../services/apiClient';
@@ -37,6 +37,9 @@ const CheckoutPage: React.FC = () => {
     province: '',
     postal_code: '',
     notes: '',
+    billing_document_type: '' as '' | 'cuit' | 'dni',
+    billing_document_number: '',
+    billing_name: '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -91,6 +94,22 @@ const CheckoutPage: React.FC = () => {
       if (!formData.city.trim()) newErrors.city = 'La ciudad es requerida';
       if (!formData.province.trim()) newErrors.province = 'La provincia es requerida';
       if (!formData.postal_code.trim()) newErrors.postal_code = 'El código postal es requerido';
+      if (formData.billing_document_type && !formData.billing_document_number.trim()) {
+        newErrors.billing_document_number = `Ingresá el número de ${formData.billing_document_type.toUpperCase()}`;
+      } else if (formData.billing_document_type) {
+        const digits = formData.billing_document_number.replace(/\D/g, '');
+        if (formData.billing_document_type === 'dni' && !/^\d{7,8}$/.test(digits)) {
+          newErrors.billing_document_number = 'El DNI debe tener 7 u 8 dígitos';
+        }
+        if (formData.billing_document_type === 'cuit') {
+          const weights = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
+          const sum = [...digits.slice(0, 10)].reduce((total, digit, index) => total + Number(digit) * weights[index], 0);
+          if (!/^\d{11}$/.test(digits) || (11 - (sum % 11)) % 11 !== Number(digits[10])) {
+            newErrors.billing_document_number = 'El CUIT no es válido';
+          }
+          if (!formData.billing_name.trim()) newErrors.billing_name = 'Ingresá la razón social del titular del CUIT';
+        }
+      }
     }
 
     setErrors(newErrors);
@@ -125,6 +144,13 @@ const CheckoutPage: React.FC = () => {
           postal_code: formData.postal_code,
         },
         notes: formData.notes || undefined,
+        ...(formData.billing_document_type
+          ? {
+              billing_document_type: formData.billing_document_type,
+              billing_document_number: formData.billing_document_number.trim(),
+              billing_name: formData.billing_name.trim() || undefined,
+            }
+          : {}),
         ...(isAuthenticated
           ? {}
           : { name: formData.name, email: formData.email, password: formData.password }),
@@ -349,6 +375,57 @@ const CheckoutPage: React.FC = () => {
                       className={`w-full p-3 border ${errors.postal_code ? 'border-error-500' : 'border-neutral-300'} rounded-md focus:ring-primary-500 focus:border-primary-500`}
                     />
                     {errors.postal_code && <p className="mt-1 text-sm text-error-500">{errors.postal_code}</p>}
+                  </div>
+
+                  <div className="mb-6 rounded-md border border-neutral-200 p-4">
+                    <h3 className="font-medium text-sm mb-3 text-neutral-800 flex items-center">
+                      <FileText size={16} className="mr-2 text-primary-500" />
+                      Datos para la factura (opcional)
+                    </h3>
+                    <p className="text-xs text-neutral-500 mb-3">
+                      Sin esto facturamos a Consumidor Final. Completalo solo si necesitás CUIT o DNI en la factura.
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label htmlFor="billing_document_type" className="block text-sm font-medium text-neutral-700 mb-1">Documento</label>
+                        <select
+                          id="billing_document_type" name="billing_document_type"
+                          value={formData.billing_document_type} onChange={handleChange}
+                          className="w-full p-3 border border-neutral-300 rounded-md focus:ring-primary-500 focus:border-primary-500 bg-white"
+                        >
+                          <option value="">Consumidor Final</option>
+                          <option value="cuit">CUIT (Responsable Inscripto)</option>
+                          <option value="dni">DNI</option>
+                        </select>
+                      </div>
+                      {formData.billing_document_type && (
+                        <>
+                          <div>
+                            <label htmlFor="billing_document_number" className="block text-sm font-medium text-neutral-700 mb-1">
+                              Número de {formData.billing_document_type.toUpperCase()} *
+                            </label>
+                            <input
+                              type="text" id="billing_document_number" name="billing_document_number"
+                              value={formData.billing_document_number} onChange={handleChange}
+                              className={`w-full p-3 border ${errors.billing_document_number ? 'border-error-500' : 'border-neutral-300'} rounded-md focus:ring-primary-500 focus:border-primary-500`}
+                            />
+                            {errors.billing_document_number && <p className="mt-1 text-sm text-error-500">{errors.billing_document_number}</p>}
+                          </div>
+                          <div>
+                            <label htmlFor="billing_name" className="block text-sm font-medium text-neutral-700 mb-1">
+                              Nombre / Razón social {formData.billing_document_type === 'cuit' ? '*' : ''}
+                            </label>
+                            <input
+                              type="text" id="billing_name" name="billing_name"
+                              value={formData.billing_name} onChange={handleChange}
+                              placeholder={formData.recipient_name || 'Opcional'}
+                              className={`w-full p-3 border ${errors.billing_name ? 'border-error-500' : 'border-neutral-300'} rounded-md focus:ring-primary-500 focus:border-primary-500`}
+                            />
+                            {errors.billing_name && <p className="mt-1 text-sm text-error-500">{errors.billing_name}</p>}
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
 
                   <div className="mb-6">

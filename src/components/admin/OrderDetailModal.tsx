@@ -3,6 +3,7 @@ import { AlertCircle, LoaderCircle, X } from 'lucide-react';
 import { ordersApi } from '../../services/ordersApi';
 import { ApiError } from '../../services/apiClient';
 import { Order, OrderStatus } from '../../types';
+import { useAuth } from '../../context/AuthContext';
 import SelectedAttributesSummary from '../products/SelectedAttributesSummary';
 
 interface OrderDetailModalProps {
@@ -32,10 +33,19 @@ const formatMoney = (value: string | number) =>
 
 const formatDateTime = (value: string) => new Date(value).toLocaleString('es-AR');
 
+const afipStatusLabels: Record<string, string> = {
+  authorized: 'Autorizada',
+  failed: 'Falló',
+  pending: 'Pendiente',
+  processing: 'Procesando',
+};
+
 // Todo lo que el cliente eligió al armar el pedido — items (con color y
 // demás atributos), dirección, pagos y envíos — en un solo lugar para que
 // el admin no tenga que adivinar nada al preparar el trabajo.
 const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ orderId, onClose, onStatusChanged }) => {
+  const { user } = useAuth();
+  const canManageInvoices = ['Administrador', 'Gerente General', 'Finanzas'].includes(user?.role?.name ?? '');
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +53,9 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ orderId, onClose, o
   const [advancing, setAdvancing] = useState(false);
   const [advanceError, setAdvanceError] = useState<string | null>(null);
   const [trackingNumber, setTrackingNumber] = useState('');
+
+  const [retryingInvoice, setRetryingInvoice] = useState(false);
+  const [invoiceError, setInvoiceError] = useState<string | null>(null);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch al cambiar de pedido, sin loop
@@ -73,6 +86,20 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ orderId, onClose, o
       setAdvanceError(err instanceof ApiError ? err.message : 'No se pudo actualizar el estado.');
     } finally {
       setAdvancing(false);
+    }
+  };
+
+  const handleRetryInvoice = async () => {
+    setInvoiceError(null);
+    setRetryingInvoice(true);
+    try {
+      await ordersApi.retryAfipInvoice(orderId);
+      const updated = await ordersApi.adminShow(orderId);
+      setOrder(updated);
+    } catch (err) {
+      setInvoiceError(err instanceof ApiError ? err.message : 'No se pudo reintentar la factura.');
+    } finally {
+      setRetryingInvoice(false);
     }
   };
 
@@ -251,6 +278,52 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ orderId, onClose, o
                   </div>
                 </section>
               )}
+
+              <section>
+                <h3 className="text-xs font-semibold uppercase text-neutral-500">Factura AFIP</h3>
+                {(!order.afip_invoices || order.afip_invoices.length === 0) && (
+                  <p className="mt-1 text-sm text-neutral-500">Todavía no se intentó emitir.</p>
+                )}
+                {order.afip_invoices && order.afip_invoices.length > 0 && (
+                  <div className="mt-2 space-y-2">
+                    {order.afip_invoices.map((invoice) => (
+                      <div key={invoice.id} className="rounded-md border border-neutral-200 p-3 text-sm">
+                        <p className="font-medium text-neutral-800">
+                          Factura {invoice.invoice_type} — {afipStatusLabels[invoice.status] ?? invoice.status}
+                          {invoice.environment !== 'produccion' && (
+                            <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-semibold text-amber-800">
+                              {invoice.environment}
+                            </span>
+                          )}
+                        </p>
+                        {invoice.cae && <p className="text-neutral-600">CAE: {invoice.cae}</p>}
+                        {invoice.error_message && <p className="text-red-600">{invoice.error_message}</p>}
+                        {invoice.status === 'authorized' && invoice.environment === 'produccion' && (
+                          <p className="text-neutral-600">
+                            Correo: {invoice.email_sent_at ? 'enviado' : invoice.email_error ?? 'pendiente'}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {canManageInvoices && Number(order.total) > 0 && ['paid', 'shipped_by_customer', 'received', 'in_process', 'ready_to_return', 'shipped_to_customer'].includes(order.status) &&
+                  (!order.afip_invoices?.some((invoice) => invoice.status === 'authorized') ||
+                  order.afip_invoices?.some((invoice) => invoice.status === 'authorized' && invoice.environment === 'produccion' && !invoice.email_sent_at)) && (
+                  <button
+                    type="button"
+                    disabled={retryingInvoice}
+                    onClick={handleRetryInvoice}
+                    className="mt-3 inline-flex items-center gap-2 rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700 disabled:cursor-wait disabled:opacity-60"
+                  >
+                    {retryingInvoice && <LoaderCircle size={16} className="animate-spin" />}
+                    {order.afip_invoices?.some((invoice) => invoice.status === 'authorized')
+                      ? 'Reintentar correo'
+                      : order.afip_invoices && order.afip_invoices.length > 0 ? 'Reintentar factura' : 'Emitir factura'}
+                  </button>
+                )}
+                {invoiceError && <p className="mt-2 text-sm text-red-600">{invoiceError}</p>}
+              </section>
             </div>
           )}
         </div>

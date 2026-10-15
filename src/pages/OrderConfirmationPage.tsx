@@ -8,6 +8,7 @@ import {
   CreditCard,
   Loader2,
   ExternalLink,
+  FileText,
   X,
 } from 'lucide-react';
 import { ordersApi } from '../services/ordersApi';
@@ -35,11 +36,16 @@ const OrderConfirmationPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [payingWithMp, setPayingWithMp] = useState(false);
   const [mpError, setMpError] = useState<string | null>(null);
+  const [downloadingInvoice, setDownloadingInvoice] = useState(false);
+  const [invoiceError, setInvoiceError] = useState<string | null>(null);
 
   const [trackingModalOpen, setTrackingModalOpen] = useState(false);
   const [trackingNumber, setTrackingNumber] = useState('');
   const [trackingError, setTrackingError] = useState<string | null>(null);
   const [submittingTracking, setSubmittingTracking] = useState(false);
+  const hasProductionInvoice = order?.afip_invoices?.some(
+    (invoice) => invoice.status === 'authorized' && invoice.environment === 'produccion'
+  ) ?? false;
 
   useEffect(() => {
     if (!orderId) return;
@@ -59,6 +65,21 @@ const OrderConfirmationPage: React.FC = () => {
       .finally(() => setLoading(false));
   }, [orderId]);
 
+  useEffect(() => {
+    if (!orderId || !order || (order.status !== 'pending_payment' && hasProductionInvoice)) return;
+
+    const startedAt = Date.now();
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible' && Date.now() - startedAt < 120_000) {
+        ordersApi.show(Number(orderId)).then(setOrder).catch(() => {});
+      } else if (Date.now() - startedAt >= 120_000) {
+        window.clearInterval(timer);
+      }
+    }, 5_000);
+
+    return () => window.clearInterval(timer);
+  }, [orderId, order?.status, hasProductionInvoice]);
+
   const handlePayWithMercadoPago = async () => {
     if (!orderId) return;
     setMpError(null);
@@ -69,6 +90,27 @@ const OrderConfirmationPage: React.FC = () => {
     } catch (err) {
       setMpError(err instanceof ApiError ? err.message : 'No se pudo iniciar el pago. Probá de nuevo.');
       setPayingWithMp(false);
+    }
+  };
+
+  const handleDownloadInvoice = async () => {
+    if (!orderId) return;
+    setInvoiceError(null);
+    setDownloadingInvoice(true);
+    try {
+      const blob = await ordersApi.downloadInvoicePdf(Number(orderId));
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `factura-pedido-${orderId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      setInvoiceError(err instanceof ApiError ? err.message : 'No se pudo descargar la factura.');
+    } finally {
+      setDownloadingInvoice(false);
     }
   };
 
@@ -136,6 +178,29 @@ const OrderConfirmationPage: React.FC = () => {
                   </div>
                 </div>
               </div>
+
+              {hasProductionInvoice && (
+                <div className="mb-8 bg-neutral-50 border border-neutral-200 rounded-md p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="flex items-center gap-2 text-neutral-800">
+                    <FileText size={18} className="text-primary-500" />
+                    <span className="font-medium">Factura disponible</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleDownloadInvoice}
+                    disabled={downloadingInvoice}
+                    className="inline-flex items-center justify-center px-5 py-2.5 bg-white border border-primary-500 text-primary-600 font-medium rounded-md hover:bg-primary-50 transition-colors disabled:opacity-60"
+                  >
+                    {downloadingInvoice ? (
+                      <Loader2 size={16} className="mr-2 animate-spin" />
+                    ) : (
+                      <FileText size={16} className="mr-2" />
+                    )}
+                    {downloadingInvoice ? 'Descargando...' : 'Descargar factura'}
+                  </button>
+                  {invoiceError && <p className="text-sm text-error-500 sm:ml-4">{invoiceError}</p>}
+                </div>
+              )}
 
               <div className="border-b border-neutral-200 pb-6 mb-6">
                 <h3 className="font-medium text-lg mb-3 text-neutral-800">Detalle del pedido</h3>

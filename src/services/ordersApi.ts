@@ -1,8 +1,15 @@
-import { apiFetch } from './apiClient';
-import { Order, Payment, Shipment } from '../types';
+import { API_BASE_URL, apiFetch, ApiError, tokenStorage } from './apiClient';
+import { AfipInvoice, Order, Payment, Shipment } from '../types';
 
 interface PaginatedOrders {
   data: Order[];
+  current_page: number;
+  last_page: number;
+  total: number;
+}
+
+interface PaginatedAfipInvoices {
+  data: AfipInvoice[];
   current_page: number;
   last_page: number;
   total: number;
@@ -30,7 +37,35 @@ export const ordersApi = {
       method: 'POST',
     }),
 
+  // PDF de la factura AFIP ya autorizada del pedido. apiFetch no sirve acá
+  // porque siempre parsea la respuesta como JSON — se hace un fetch aparte
+  // que devuelve el binario como Blob para descargarlo del lado del cliente.
+  downloadInvoicePdf: async (id: number): Promise<Blob> => {
+    const token = tokenStorage.get();
+    const response = await fetch(`${API_BASE_URL}/orders/${id}/invoice-pdf`, {
+      headers: {
+        Accept: 'application/pdf',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null);
+      throw new ApiError(payload?.error ?? `Error ${response.status}`, response.status);
+    }
+
+    return response.blob();
+  },
+
   // --- Staff (Administrador / Gerente General / Finanzas / Stock) ---
+
+  adminAfipInvoices: (status?: string, page = 1) =>
+    apiFetch<PaginatedAfipInvoices>(
+      `/admin/afip-invoices?${new URLSearchParams({ ...(status ? { status } : {}), page: String(page) })}`
+    ),
+
+  retryAfipInvoice: (orderId: number) =>
+    apiFetch<{ status: string }>(`/admin/afip-invoices/${orderId}/retry`, { method: 'POST' }),
 
   addPayment: (orderId: number, type: 'payment' | 'refund', amount: number, method?: string) =>
     apiFetch<Payment>(`/orders/${orderId}/payments`, {
