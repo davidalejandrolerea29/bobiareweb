@@ -3,6 +3,7 @@ import { authApi } from '../services/authApi';
 import { tokenStorage, guestTokenStorage } from '../services/apiClient';
 import { AuthSession, User } from '../types';
 import { unregisterPush } from '../services/pushNotifications';
+import { getGoogleIdToken } from '../services/googleLogin';
 
 const STAFF_ROLES = ['Administrador', 'Gerente General', 'Finanzas', 'Stock'];
 
@@ -12,6 +13,7 @@ interface AuthContextProps {
   isAuthenticated: boolean;
   isStaff: boolean;
   login: (email: string, password: string) => Promise<User>;
+  loginWithGoogle: () => Promise<User>;
   register: (name: string, email: string, password: string) => Promise<User>;
   logout: () => Promise<void>;
   setSession: (session: AuthSession) => void;
@@ -56,6 +58,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     [setSession]
   );
 
+  const loginWithGoogle = useCallback(async () => {
+    const session = await authApi.google(await getGoogleIdToken());
+    setSession(session);
+    return session.user;
+  }, [setSession]);
+
   const register = useCallback(async (name: string, email: string, password: string) => {
     const { user: newUser } = await authApi.register(name, email, password);
     return newUser;
@@ -86,6 +94,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         isAuthenticated: !!user,
         isStaff,
         login,
+        loginWithGoogle,
         register,
         logout,
         setSession,

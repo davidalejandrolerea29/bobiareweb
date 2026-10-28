@@ -16,6 +16,13 @@ export const authApi = {
       auth: false,
     }),
 
+  google: (idToken: string) =>
+    apiFetch<AuthSession>('/auth/google', {
+      method: 'POST',
+      body: { id_token: idToken },
+      auth: false,
+    }),
+
   me: () => apiFetch<User>('/auth/me'),
 
   refresh: () => apiFetch<AuthSession>('/auth/refresh', { method: 'POST' }),

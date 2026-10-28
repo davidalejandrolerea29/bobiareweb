@@ -11,3 +11,7 @@ export const firebaseReady = Boolean(
   firebaseConfig.messagingSenderId && firebaseConfig.appId &&
   import.meta.env.VITE_FIREBASE_VAPID_KEY
 );
+
+export const googleLoginReady = import.meta.env.VITE_GOOGLE_LOGIN_ENABLED === 'true' && Boolean(
+  firebaseConfig.apiKey && firebaseConfig.authDomain && firebaseConfig.projectId && firebaseConfig.appId
+);
