@@ -80,6 +80,12 @@ export const ordersApi = {
 
   adminShow: (id: number) => apiFetch<Order>(`/admin/orders/${id}`),
 
+  confirmServicePeriod: (id: number, start: string, end: string) =>
+    apiFetch<Order>(`/admin/orders/${id}/service-period`, {
+      method: 'POST',
+      body: { service_start_date: start, service_end_date: end },
+    }),
+
   // Avanza el pedido un paso (recibido -> procesando -> listo -> despachado).
   // tracking_number/carrier solo hacen falta para el paso a "shipped_to_customer".
   updateStatus: (

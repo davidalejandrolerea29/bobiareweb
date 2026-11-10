@@ -24,6 +24,17 @@ const NEXT_ACTION: Partial<Record<OrderStatus, { target: AdvanceStatus; label: s
   ready_to_return: { target: 'shipped_to_customer', label: 'Despachar de vuelta' },
 };
 
+const nextAction = (order: Order) => {
+  if (order.has_service && order.status === 'pending_payment' && !order.piece_received_at) {
+    return { target: 'received' as const, label: 'Marcar pieza recibida' };
+  }
+  if (order.has_service && order.status === 'received' && !order.service_start_date) return undefined;
+  if (order.has_service && order.status === 'paid' && order.piece_received_at) {
+    return { target: 'in_process' as const, label: 'Marcar en proceso' };
+  }
+  return NEXT_ACTION[order.status];
+};
+
 const formatMoney = (value: string | number) =>
   new Intl.NumberFormat('es-AR', {
     style: 'currency',
@@ -53,6 +64,9 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ orderId, onClose, o
   const [advancing, setAdvancing] = useState(false);
   const [advanceError, setAdvanceError] = useState<string | null>(null);
   const [trackingNumber, setTrackingNumber] = useState('');
+  const [serviceStartDate, setServiceStartDate] = useState('');
+  const [serviceEndDate, setServiceEndDate] = useState('');
+  const [confirmingPeriod, setConfirmingPeriod] = useState(false);
 
   const [retryingInvoice, setRetryingInvoice] = useState(false);
   const [invoiceError, setInvoiceError] = useState<string | null>(null);
@@ -103,6 +117,20 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ orderId, onClose, o
     }
   };
 
+  const handleConfirmPeriod = async () => {
+    setAdvanceError(null);
+    setConfirmingPeriod(true);
+    try {
+      const updated = await ordersApi.confirmServicePeriod(orderId, serviceStartDate, serviceEndDate);
+      setOrder(updated);
+      onStatusChanged?.();
+    } catch (err) {
+      setAdvanceError(err instanceof ApiError ? err.message : 'No se pudieron confirmar las fechas.');
+    } finally {
+      setConfirmingPeriod(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-lg bg-white shadow-xl">
@@ -148,10 +176,10 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ orderId, onClose, o
                 </div>
               </section>
 
-              {NEXT_ACTION[order.status] && (
+              {nextAction(order) && (
                 <section className="rounded-md border border-primary-100 bg-primary-50 p-4">
                   <h3 className="text-xs font-semibold uppercase text-neutral-500 mb-2">Estado</h3>
-                  {NEXT_ACTION[order.status]?.target === 'shipped_to_customer' ? (
+                  {nextAction(order)?.target === 'shipped_to_customer' ? (
                     <div className="space-y-2">
                       <label htmlFor="return_tracking" className="block text-sm text-neutral-700">
                         Número de seguimiento de vuelta
@@ -178,13 +206,32 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ orderId, onClose, o
                     <button
                       type="button"
                       disabled={advancing}
-                      onClick={() => handleAdvance(NEXT_ACTION[order.status]!.target)}
+                      onClick={() => handleAdvance(nextAction(order)!.target)}
                       className="inline-flex items-center gap-2 rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 disabled:cursor-wait disabled:opacity-60"
                     >
                       {advancing && <LoaderCircle size={16} className="animate-spin" />}
-                      {NEXT_ACTION[order.status]?.label}
+                      {nextAction(order)?.label}
                     </button>
                   )}
+                  {advanceError && <p className="mt-2 text-sm text-red-600">{advanceError}</p>}
+                </section>
+              )}
+
+              {order.has_service && order.status === 'received' && !order.service_start_date && (
+                <section className="rounded-md border border-primary-100 bg-primary-50 p-4">
+                  <h3 className="text-sm font-semibold text-neutral-800">Fechas acordadas para el servicio</h3>
+                  <p className="mt-1 text-xs text-neutral-600">Cargalas después de recibir la pieza y acordarlas con el cliente. Al confirmar, se habilita el pago total.</p>
+                  <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <label className="text-sm">Desde
+                      <input type="date" value={serviceStartDate} onChange={(event) => setServiceStartDate(event.target.value)} className="mt-1 w-full rounded-md border border-neutral-300 p-2" />
+                    </label>
+                    <label className="text-sm">Hasta
+                      <input type="date" value={serviceEndDate} min={serviceStartDate} onChange={(event) => setServiceEndDate(event.target.value)} className="mt-1 w-full rounded-md border border-neutral-300 p-2" />
+                    </label>
+                  </div>
+                  <button type="button" disabled={confirmingPeriod || !serviceStartDate || !serviceEndDate || serviceEndDate < serviceStartDate} onClick={handleConfirmPeriod} className="mt-3 rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
+                    {confirmingPeriod ? 'Guardando...' : 'Confirmar fechas y habilitar pago'}
+                  </button>
                   {advanceError && <p className="mt-2 text-sm text-red-600">{advanceError}</p>}
                 </section>
               )}

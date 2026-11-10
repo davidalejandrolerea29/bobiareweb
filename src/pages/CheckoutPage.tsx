@@ -41,8 +41,6 @@ const CheckoutPage: React.FC = () => {
     billing_document_number: '',
     billing_name: '',
     billing_iva_condition: 'consumer_final' as 'consumer_final' | 'registered' | 'monotributo' | 'exempt',
-    service_start_date: '',
-    service_end_date: '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -107,13 +105,6 @@ const CheckoutPage: React.FC = () => {
           if (!formData.billing_iva_condition) newErrors.billing_iva_condition = 'Elegí la condición frente al IVA';
         }
       }
-      if (hasService) {
-        if (!formData.service_start_date) newErrors.service_start_date = 'Indicá el inicio de la prestación acordada';
-        if (!formData.service_end_date) newErrors.service_end_date = 'Indicá el fin de la prestación acordada';
-        if (formData.service_start_date && formData.service_end_date && formData.service_end_date < formData.service_start_date) {
-          newErrors.service_end_date = 'El fin debe ser posterior o igual al inicio';
-        }
-      }
     }
 
     setErrors(newErrors);
@@ -156,10 +147,6 @@ const CheckoutPage: React.FC = () => {
               billing_iva_condition: formData.billing_document_type === 'cuit' ? formData.billing_iva_condition : 'consumer_final',
             }
           : {}),
-        ...(hasService ? {
-          service_start_date: formData.service_start_date,
-          service_end_date: formData.service_end_date,
-        } : {}),
         ...(isAuthenticated
           ? {}
           : { name: formData.name, email: formData.email, password: formData.password }),
@@ -178,6 +165,10 @@ const CheckoutPage: React.FC = () => {
       // si falla iniciar el pago con MP no tiene sentido dejar al cliente
       // sin salida: lo mandamos a la pantalla del pedido, que tiene su
       // propio botón "Pagar con Mercado Pago" para reintentar.
+      if (!response.payment_ready) {
+        navigate(`/confirmacion/${response.id}`);
+        return;
+      }
       try {
         const { init_point: initPoint } = await ordersApi.checkoutMercadoPago(response.id);
         window.location.href = initPoint;
@@ -437,18 +428,8 @@ const CheckoutPage: React.FC = () => {
 
                   {hasService && (
                     <div className="mb-6 rounded-md border border-neutral-200 p-4">
-                      <h3 className="font-medium text-sm mb-2">Fechas de prestación del servicio</h3>
-                      <p className="text-xs text-neutral-500 mb-3">Ingresá el período de trabajo acordado con BOBIARE. Estas fechas se informan en la factura de ARCA.</p>
-                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <label className="text-sm">Desde *
-                          <input type="date" name="service_start_date" value={formData.service_start_date} onChange={handleChange} className="mt-1 w-full rounded-md border border-neutral-300 p-3" />
-                          {errors.service_start_date && <span className="text-error-500">{errors.service_start_date}</span>}
-                        </label>
-                        <label className="text-sm">Hasta *
-                          <input type="date" name="service_end_date" value={formData.service_end_date} onChange={handleChange} className="mt-1 w-full rounded-md border border-neutral-300 p-3" />
-                          {errors.service_end_date && <span className="text-error-500">{errors.service_end_date}</span>}
-                        </label>
-                      </div>
+                      <h3 className="font-medium text-sm mb-2">Servicio sobre tu pieza</h3>
+                      <p className="text-xs text-neutral-500">Confirmá el pedido y envianos la pieza. Cuando la recibamos, acordaremos las fechas de trabajo y te avisaremos para pagar el total. El plazo publicado es estimado.</p>
                     </div>
                   )}
 
@@ -475,7 +456,7 @@ const CheckoutPage: React.FC = () => {
                       className="px-6 py-3 bg-primary-500 text-white font-medium rounded-md hover:bg-primary-600 transition-colors flex items-center ml-auto disabled:opacity-60"
                     >
                       {submitting ? <Loader2 size={18} className="mr-2 animate-spin" /> : <CreditCard size={18} className="mr-2" />}
-                      {submitting ? 'Redirigiendo a Mercado Pago...' : 'Pagar con Mercado Pago'}
+                      {submitting ? 'Confirmando...' : hasService ? 'Confirmar pedido y enviar pieza' : 'Pagar con Mercado Pago'}
                     </button>
                   </div>
                 </div>

@@ -166,7 +166,9 @@ const OrderConfirmationPage: React.FC = () => {
                       Estado actual
                     </h3>
                     <p className="text-neutral-600">
-                      {statusLabels[order.status] ?? order.status}
+                      {order.has_service && order.status === 'pending_payment' && !order.payment_ready
+                        ? 'Enviá tu pieza al taller'
+                        : statusLabels[order.status] ?? order.status}
                     </p>
                   </div>
 
@@ -233,7 +235,7 @@ const OrderConfirmationPage: React.FC = () => {
                 </div>
               </div>
 
-              {order.status === 'pending_payment' && (
+              {order.status === 'pending_payment' && order.payment_ready && (
                 <div className="mb-8 bg-primary-50 border border-primary-100 rounded-md p-6 text-center">
                   <h3 className="font-medium text-lg mb-2 text-neutral-800">Falta pagar el total</h3>
                   <p className="text-sm text-neutral-600 mb-4">
@@ -256,7 +258,21 @@ const OrderConfirmationPage: React.FC = () => {
                 </div>
               )}
 
-              {order.status === 'paid' && !shipment && (
+              {order.has_service && order.status === 'pending_payment' && !order.payment_ready && !order.piece_received_at && (
+                <div className="mb-8 bg-primary-50 border border-primary-100 rounded-md p-6 text-center">
+                  <h3 className="font-medium text-lg mb-2 text-neutral-800">Enviá tu pieza al taller</h3>
+                  <p className="text-sm text-neutral-600">El plazo publicado es estimado. Al recibir la pieza, acordaremos las fechas de trabajo y te avisaremos para pagar el total.</p>
+                </div>
+              )}
+
+              {order.has_service && order.status === 'received' && !order.service_start_date && (
+                <div className="mb-8 bg-primary-50 border border-primary-100 rounded-md p-6 text-center">
+                  <h3 className="font-medium text-lg mb-2 text-neutral-800">Pieza recibida</h3>
+                  <p className="text-sm text-neutral-600">El taller está acordando las fechas del servicio. Te avisaremos cuando se habilite el pago total.</p>
+                </div>
+              )}
+
+              {((order.status === 'paid' && !order.has_service) || (order.has_service && order.status === 'pending_payment' && !order.piece_received_at)) && !shipment && (
                 <div className="mb-8 bg-amber-50 border border-amber-200 rounded-md p-6 text-center">
                   <h3 className="font-medium text-lg mb-2 text-neutral-800">Falta cargar el envío</h3>
                   <p className="text-sm text-neutral-600 mb-4">

@@ -197,6 +197,9 @@ export interface Order {
   billing_iva_condition: 'consumer_final' | 'registered' | 'monotributo' | 'exempt' | null;
   service_start_date: string | null;
   service_end_date: string | null;
+  has_service: boolean;
+  piece_received_at: string | null;
+  payment_ready: boolean;
   created_at: string;
   updated_at: string;
   items: OrderItem[];

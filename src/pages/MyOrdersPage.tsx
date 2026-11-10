@@ -114,7 +114,7 @@ const MyOrdersPage: React.FC = () => {
                   <p className="font-medium text-neutral-800">
                     Pedido #{order.id} — {new Date(order.created_at).toLocaleDateString('es-AR')}
                   </p>
-                  <p className="text-sm text-neutral-600 mt-1">{statusLabels[order.status] ?? order.status}</p>
+                  <p className="text-sm text-neutral-600 mt-1">{order.has_service && order.status === 'pending_payment' && !order.payment_ready ? 'Enviá tu pieza al taller' : statusLabels[order.status] ?? order.status}</p>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <span className="font-medium text-primary-600">{formatMoney(order.total)}</span>
