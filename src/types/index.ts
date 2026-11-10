@@ -73,6 +73,7 @@ export interface ProductSummary {
   name: string;
   price: string;
   offer_price: string | null;
+  fiscal_concept: 'goods' | 'service';
   categories: string[];
   images: string[];
 }
@@ -84,6 +85,7 @@ export interface ProductDetail {
   description: string | null;
   price: string;
   offer_price: string | null;
+  fiscal_concept: 'goods' | 'service';
   images: ProductImage[];
   attributes: {
     attribute_type_id: number;
@@ -133,6 +135,7 @@ export interface OrderItem {
   selected_attributes: SelectedAttributeSnapshot[];
   quantity: number;
   subtotal: string;
+  fiscal_concept_snapshot: 'goods' | 'service' | null;
 }
 
 export type OrderStatus =
@@ -191,6 +194,9 @@ export interface Order {
   billing_document_type: 'cuit' | 'dni' | null;
   billing_document_number: string | null;
   billing_name: string | null;
+  billing_iva_condition: 'consumer_final' | 'registered' | 'monotributo' | 'exempt' | null;
+  service_start_date: string | null;
+  service_end_date: string | null;
   created_at: string;
   updated_at: string;
   items: OrderItem[];

@@ -20,6 +20,9 @@ export interface CheckoutPayload {
   billing_document_type?: 'cuit' | 'dni';
   billing_document_number?: string;
   billing_name?: string;
+  billing_iva_condition?: 'consumer_final' | 'registered' | 'monotributo' | 'exempt';
+  service_start_date?: string;
+  service_end_date?: string;
 }
 
 export type CheckoutResponse = Order & Partial<AuthSession>;

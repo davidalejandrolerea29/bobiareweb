@@ -40,10 +40,14 @@ const CheckoutPage: React.FC = () => {
     billing_document_type: '' as '' | 'cuit' | 'dni',
     billing_document_number: '',
     billing_name: '',
+    billing_iva_condition: 'consumer_final' as 'consumer_final' | 'registered' | 'monotributo' | 'exempt',
+    service_start_date: '',
+    service_end_date: '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [provinces, setProvinces] = useState<Province[]>([]);
+  const hasService = cart?.items.some((item) => item.fiscal_concept_snapshot === 'service') ?? false;
 
   useEffect(() => {
     fetch(PROVINCES_API_URL)
@@ -100,6 +104,14 @@ const CheckoutPage: React.FC = () => {
             newErrors.billing_document_number = 'El CUIT no es válido';
           }
           if (!formData.billing_name.trim()) newErrors.billing_name = 'Ingresá la razón social del titular del CUIT';
+          if (!formData.billing_iva_condition) newErrors.billing_iva_condition = 'Elegí la condición frente al IVA';
+        }
+      }
+      if (hasService) {
+        if (!formData.service_start_date) newErrors.service_start_date = 'Indicá el inicio de la prestación acordada';
+        if (!formData.service_end_date) newErrors.service_end_date = 'Indicá el fin de la prestación acordada';
+        if (formData.service_start_date && formData.service_end_date && formData.service_end_date < formData.service_start_date) {
+          newErrors.service_end_date = 'El fin debe ser posterior o igual al inicio';
         }
       }
     }
@@ -141,8 +153,13 @@ const CheckoutPage: React.FC = () => {
               billing_document_type: formData.billing_document_type,
               billing_document_number: formData.billing_document_number.trim(),
               billing_name: formData.billing_name.trim() || undefined,
+              billing_iva_condition: formData.billing_document_type === 'cuit' ? formData.billing_iva_condition : 'consumer_final',
             }
           : {}),
+        ...(hasService ? {
+          service_start_date: formData.service_start_date,
+          service_end_date: formData.service_end_date,
+        } : {}),
         ...(isAuthenticated
           ? {}
           : { name: formData.name, email: formData.email, password: formData.password }),
@@ -372,7 +389,7 @@ const CheckoutPage: React.FC = () => {
                           className="w-full p-3 border border-neutral-300 rounded-md focus:ring-primary-500 focus:border-primary-500 bg-white"
                         >
                           <option value="">Consumidor Final</option>
-                          <option value="cuit">CUIT (Responsable Inscripto)</option>
+                          <option value="cuit">CUIT</option>
                           <option value="dni">DNI</option>
                         </select>
                       </div>
@@ -403,8 +420,37 @@ const CheckoutPage: React.FC = () => {
                           </div>
                         </>
                       )}
+                      {formData.billing_document_type === 'cuit' && (
+                        <div>
+                          <label htmlFor="billing_iva_condition" className="block text-sm font-medium text-neutral-700 mb-1">Condición frente al IVA *</label>
+                          <select id="billing_iva_condition" name="billing_iva_condition" value={formData.billing_iva_condition} onChange={handleChange}
+                            className="w-full p-3 border border-neutral-300 rounded-md bg-white">
+                            <option value="consumer_final">Consumidor final</option>
+                            <option value="registered">Responsable inscripto</option>
+                            <option value="monotributo">Monotributista</option>
+                            <option value="exempt">Exento</option>
+                          </select>
+                        </div>
+                      )}
                     </div>
                   </div>
+
+                  {hasService && (
+                    <div className="mb-6 rounded-md border border-neutral-200 p-4">
+                      <h3 className="font-medium text-sm mb-2">Fechas de prestación del servicio</h3>
+                      <p className="text-xs text-neutral-500 mb-3">Ingresá el período de trabajo acordado con BOBIARE. Estas fechas se informan en la factura de ARCA.</p>
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <label className="text-sm">Desde *
+                          <input type="date" name="service_start_date" value={formData.service_start_date} onChange={handleChange} className="mt-1 w-full rounded-md border border-neutral-300 p-3" />
+                          {errors.service_start_date && <span className="text-error-500">{errors.service_start_date}</span>}
+                        </label>
+                        <label className="text-sm">Hasta *
+                          <input type="date" name="service_end_date" value={formData.service_end_date} onChange={handleChange} className="mt-1 w-full rounded-md border border-neutral-300 p-3" />
+                          {errors.service_end_date && <span className="text-error-500">{errors.service_end_date}</span>}
+                        </label>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="mb-6">
                     <label htmlFor="notes" className="block text-sm font-medium text-neutral-700 mb-1">Notas (opcional)</label>

@@ -16,6 +16,7 @@ export interface ProductFormInitialData {
   description: string;
   price: string;
   offerPrice: string;
+  fiscalConcept: 'goods' | 'service';
   categoryIds: number[];
   deliveryTimeIds: number[];
   selectedColorIds: number[];
@@ -27,6 +28,7 @@ export interface ProductFormSubmitValues {
   description?: string;
   price: number;
   offer_price: number | null;
+  fiscal_concept: 'goods' | 'service';
   category_ids: number[];
   delivery_time_ids: number[];
   attributes: ProductAttributePayload[];
@@ -68,6 +70,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
   const [description, setDescription] = useState(initialData?.description ?? '');
   const [price, setPrice] = useState(initialData?.price ?? '');
   const [offerPrice, setOfferPrice] = useState(initialData?.offerPrice ?? '');
+  const [fiscalConcept, setFiscalConcept] = useState<'goods' | 'service'>(initialData?.fiscalConcept ?? 'service');
   const [categoryIds, setCategoryIds] = useState<number[]>(initialData?.categoryIds ?? []);
   const [deliveryTimeIds, setDeliveryTimeIds] = useState<number[]>(initialData?.deliveryTimeIds ?? []);
 
@@ -193,6 +196,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
         description: description || undefined,
         price: Number(price),
         offer_price: offerPrice ? Number(offerPrice) : null,
+        fiscal_concept: fiscalConcept,
         category_ids: categoryIds,
         delivery_time_ids: deliveryTimeIds,
         attributes,
@@ -318,6 +322,14 @@ const ProductForm: React.FC<ProductFormProps> = ({
                   </div>
                 </label>
               </div>
+              <label className="mt-4 block">
+                <span className="mb-2 block text-sm font-semibold text-neutral-700">Qué se factura</span>
+                <select value={fiscalConcept} onChange={(event) => setFiscalConcept(event.target.value as 'goods' | 'service')}
+                  className="h-11 w-full rounded-md border border-neutral-300 px-3 text-sm">
+                  <option value="service">Servicio</option>
+                  <option value="goods">Bien físico</option>
+                </select>
+              </label>
             </div>
           </section>
 

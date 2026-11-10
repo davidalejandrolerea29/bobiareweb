@@ -17,6 +17,7 @@ export interface ProductPayload {
   description?: string;
   price: number;
   offer_price?: number | null;
+  fiscal_concept: 'goods' | 'service';
   category_ids: number[];
   delivery_time_ids: number[];
   images: string[]; // data:image/...;base64,....
@@ -30,6 +31,7 @@ export interface ProductUpdatePayload {
     description?: string | null;
     price: number;
     offer_price?: number | null;
+    fiscal_concept: 'goods' | 'service';
     images?: { file: string }[];
     attributes?: ProductAttributePayload[];
   };

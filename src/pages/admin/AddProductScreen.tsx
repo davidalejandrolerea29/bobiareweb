@@ -13,6 +13,7 @@ const AddProductScreen: React.FC = () => {
       description: values.description,
       price: values.price,
       offer_price: values.offer_price,
+      fiscal_concept: values.fiscal_concept,
       category_ids: values.category_ids,
       delivery_time_ids: values.delivery_time_ids,
       images: values.images ?? [],
